@@ -1,0 +1,160 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding:24px 0px;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+.expenses-filter-item {
+  margin-bottom: 16px;
+}
+.App {
+  padding-top: 24px;
+}
+
+.expense-row {
+  transition: box-shadow 0.2s;
+}
+.expense-row-odd {
+  background-color: #f7f7fa;
+}
+.expense-row-even {
+  background-color: #fff;
+}
+.expense-row:hover {
+  box-shadow: 0 2px 8px 0 rgba(60,60,60,0.10), 0 1.5px 4px 0 rgba(60,60,60,0.08);
+  background-color: #f4fffa;
+  z-index: 1;
+}
+
+/* Mobile Expense Cards */
+.expense-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.expense-card {
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.expense-card:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.expense-card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0px;
+  gap: 0.75rem;
+}
+
+.expense-card-left {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  text-align: left;
+}
+
+.expense-card-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.expense-card-details {
+  display: flex;
+  gap: 0.5rem;
+  color: #888;
+  font-size: 12px;
+}
+
+.expense-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.expense-card-amount {
+  font-weight: 500;
+  color: #8b0000;
+  padding-right: 12px;
+}
+
+.expense-card-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.expense-card-button {
+  padding: 0.25rem;
+}
+
+.expense-card-button:hover {
+  background-color: var(--mui-palette-action-selected);
+}
+
+.expense-card-button-delete:hover {
+  background-color: var(--mui-palette-error-light);
+}
+
+.expense-card-monthly {
+  color: var(--mui-palette-primary-main);
+}
+
+/* Amount color in table view */
+.expense-row .MuiTableCell-root:nth-child(3) {
+  color: #8b0000;
+  font-weight: 500;
+}
