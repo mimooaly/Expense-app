@@ -6,26 +6,32 @@ import {
   TextField,
   Button,
   Link,
+  Alert,
+  Paper,
 } from "@mui/material";
-import { auth } from "./firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { auth } from "./firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 const Register: React.FC = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+    setError("");
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName: name });
+      }
       navigate("/");
     } catch (error: any) {
       setError(error.message);
@@ -34,16 +40,37 @@ const Register: React.FC = () => {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ mt: 8, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Register
+      <img src="/Logo.png" alt="Logo" style={{ width: 120, marginBottom: 1 }} />
+      <Box
+        component={Paper}
+        elevation={0}
+        sx={{
+          mt: 4,
+          p: 4,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <Typography variant="h6" component="h1" gutterBottom>
+          Create an account and start logging!
         </Typography>
         {error && (
-          <Typography color="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2, width: "100%" }}>
             {error}
-          </Typography>
+          </Alert>
         )}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+          <TextField
+            fullWidth
+            label="Name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            margin="normal"
+            required
+            autoComplete="name"
+          />
           <TextField
             fullWidth
             label="Email"
@@ -52,6 +79,7 @@ const Register: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             margin="normal"
             required
+            autoComplete="email"
           />
           <TextField
             fullWidth
@@ -61,15 +89,7 @@ const Register: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             required
-          />
-          <TextField
-            fullWidth
-            label="Confirm Password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            margin="normal"
-            required
+            autoComplete="new-password"
           />
           <Button
             type="submit"
@@ -80,7 +100,7 @@ const Register: React.FC = () => {
             Register
           </Button>
           <Box sx={{ textAlign: "center" }}>
-            <Link href="/login" variant="body2">
+            <Link href="/login" variant="body2" color="primary.dark">
               Already have an account? Login
             </Link>
           </Box>
