@@ -79,7 +79,6 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         onChange={(e) => onYearChange(Number(e.target.value))}
         sx={{ minWidth: 120 }}
       >
-        <MenuItem value={0}>All</MenuItem>
         {years.map((year) => (
           <MenuItem key={year} value={year}>
             {year}

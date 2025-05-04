@@ -27,7 +27,7 @@ import {
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import { Trash2, Edit2, Filter, Plus } from "react-feather";
+import { Trash2, Edit2, Search, Plus } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
@@ -459,8 +459,12 @@ export default function ExpensesList() {
             placeholder="Search expenses..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: <Filter size={20} style={{ marginRight: 8 }} />,
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <FeatherIcons.Search size={20} style={{ marginRight: 8 }} />
+                ),
+              },
             }}
           />
         </Box>
@@ -496,7 +500,10 @@ export default function ExpensesList() {
             Total $
             {filteredExpenses
               .reduce((sum, exp) => sum + exp.amount, 0)
-              .toFixed(2)}
+              .toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
           </Typography>
         </Box>
 

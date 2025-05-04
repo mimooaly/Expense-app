@@ -63,7 +63,7 @@ const Header: React.FC = () => {
       position="fixed"
       elevation={0}
       sx={{
-        backgroundColor: "#fff",
+        backgroundColor: "#f3f4f6",
         boxShadow: "none",
         borderRadius: "0px",
         borderBottom: "1px solid #e0e0e0",
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
           <img
             src="/icon.png"
             alt="Logo"
-            style={{ width: 32, height: 32, marginRight: 8 }}
+            style={{ width: 56, height: 56, marginRight: 8 }}
           />
           <Typography variant="body1" component="div">
             Penny Logs
