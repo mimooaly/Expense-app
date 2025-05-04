@@ -24,11 +24,7 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError("");
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      await createUserWithEmailAndPassword(auth, email, password);
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { displayName: name });
       }
