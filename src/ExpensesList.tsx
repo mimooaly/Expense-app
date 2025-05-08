@@ -497,10 +497,11 @@ export default function ExpensesList() {
           }}
         >
           <Typography variant="h4">Expenses</Typography>
-          <Box>
+          <Box margin={0}>
             <Button
               variant="text"
               onClick={() => setIsRecurringDialogOpen(true)}
+              className="manage-recurring-button"
               sx={{
                 mr: 2,
                 color: "success.dark",
@@ -513,7 +514,12 @@ export default function ExpensesList() {
             >
               Manage Recurring
             </Button>
-            <Fab color="primary" onClick={handleOpen} sx={{ mr: 0 }}>
+            <Fab
+              color="primary"
+              className="add-expense-button"
+              onClick={handleOpen}
+              sx={{ mr: 0 }}
+            >
               <AddIcon />
             </Fab>
           </Box>

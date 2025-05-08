@@ -196,6 +196,7 @@
   top: 24px;
   right: 75px;
   text-align: right;
+  background-color: #fff;
 }
 
 .expense-list-item-mobile-secondary {
@@ -235,4 +236,14 @@
     display: block;
     z-index: -1;
   }
+  .add-expense-button {
+    position: fixed !important;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1;
+  }
+  .manage-recurring-button {
+    margin-right: -16px !important;
+  }
 }
+
