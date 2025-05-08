@@ -40,14 +40,21 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
   );
 
   return (
-    <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        gap: 2,
+        mb: { xs: 0, sm: 2 },
+      }}
+    >
       <TextField
         select
         label="Category"
         value={category}
         size="small"
         onChange={(e) => onCategoryChange(Number(e.target.value))}
-        sx={{ minWidth: 120 }}
+        sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
         <MenuItem value={0}>All</MenuItem>
         {expensesCateg.map((cat) => (
@@ -62,7 +69,7 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         value={month}
         size="small"
         onChange={(e) => onMonthChange(Number(e.target.value))}
-        sx={{ minWidth: 120 }}
+        sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
         <MenuItem value={0}>All</MenuItem>
         {months.map((month, index) => (
@@ -77,11 +84,11 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         value={year}
         size="small"
         onChange={(e) => onYearChange(Number(e.target.value))}
-        sx={{ minWidth: 120 }}
+        sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
-        {years.map((year) => (
-          <MenuItem key={year} value={year}>
-            {year}
+        {years.map((yearItem) => (
+          <MenuItem key={yearItem} value={yearItem}>
+            {yearItem}
           </MenuItem>
         ))}
       </TextField>
