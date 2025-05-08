@@ -23,14 +23,24 @@ import {
   Typography,
   Fab,
   TextField,
+  List,
+  ListItem,
+  ListItemText,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
 } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import { Trash2, Edit2, Search, Plus } from "react-feather";
+import { Trash2, Edit2, Plus } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export interface Expense {
   id: string;
@@ -191,6 +201,59 @@ function getCategoryIcon(iconName: string) {
   ) : null;
 }
 
+const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
+  expenses,
+  onDelete,
+  onEdit,
+}) => (
+  <List className="expenses-list-mobile">
+    {expenses.map((expense) => (
+      <ListItem key={expense.id} divider className="expense-list-item-mobile">
+        <ListItemText
+          primary={
+            <div className="expense-list-item-mobile-primary">
+              <Box display="flex" alignItems="center">
+                {getCategoryIcon(
+                  expensesCateg.find(
+                    (cat: { id: number; name: string; icon: string }) =>
+                      cat.name === expense.categoryName
+                  )?.icon || ""
+                )}
+                <span className="expense-list-item-mobile-name">
+                  {expense.name}
+                </span>
+              </Box>
+            </div>
+          }
+          secondary={
+            <>
+              <span className="expense-list-item-mobile-amount">
+                $
+                {expense.amount.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+              <span className="expense-list-item-mobile-secondary">
+                {expense.categoryName} •{" "}
+                {new Date(expense.date).toLocaleDateString()}
+              </span>
+            </>
+          }
+        />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <IconButton edge="end" onClick={() => onEdit(expense)}>
+            <Edit2 size={16} />
+          </IconButton>
+          <IconButton edge="end" onClick={() => onDelete(expense.id)}>
+            <Trash2 size={16} />
+          </IconButton>
+        </Box>
+      </ListItem>
+    ))}
+  </List>
+);
+
 export default function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filters, setFilters] = useState({
@@ -205,6 +268,9 @@ export default function ExpensesList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchExpenses = (user: any) => {
@@ -420,7 +486,7 @@ export default function ExpensesList() {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" className="page-glossy-background">
       <Box sx={{ my: 4 }}>
         <Box
           sx={{
@@ -453,58 +519,129 @@ export default function ExpensesList() {
           </Box>
         </Box>
 
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Search expenses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <FeatherIcons.Search size={20} style={{ marginRight: 8 }} />
-                ),
-              },
+        {isMobile ? (
+          <Accordion
+            sx={{
+              mb: 2,
+              boxShadow: "none",
+              "&:before": { display: "none" },
+              border: "1px solid rgba(0, 0, 0, 0.12)",
+              borderRadius: 1,
             }}
-          />
-        </Box>
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="filters-search-panel-content"
+              id="filters-search-panel-header"
+            >
+              <Typography>Filters & Search</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  padding: 1,
+                }}
+              >
+                <TextField
+                  fullWidth
+                  placeholder="Search expenses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  sx={{
+                    marginBottom: 1,
+                  }}
+                  size="small"
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <FeatherIcons.Search
+                          size={20}
+                          style={{ marginRight: 8 }}
+                        />
+                      ),
+                    },
+                  }}
+                />
+                <ExpensesFilter
+                  category={filters.category}
+                  month={filters.month}
+                  year={filters.year}
+                  onCategoryChange={(category) =>
+                    setFilters({ ...filters, category })
+                  }
+                  onMonthChange={(month) => setFilters({ ...filters, month })}
+                  onYearChange={(year) => setFilters({ ...filters, year })}
+                />
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        ) : (
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Search expenses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <FeatherIcons.Search size={20} style={{ marginRight: 8 }} />
+                  ),
+                },
+              }}
+            />
+          </Box>
+        )}
 
         <Box
           sx={{
             display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
             justifyContent: "space-between",
-            alignItems: "center",
-            alignContent: "center",
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: { xs: 2, sm: 0 },
           }}
         >
-          <ExpensesFilter
-            category={filters.category}
-            month={filters.month}
-            year={filters.year}
-            onCategoryChange={(category) =>
-              setFilters({ ...filters, category })
-            }
-            onMonthChange={(month) => setFilters({ ...filters, month })}
-            onYearChange={(year) => setFilters({ ...filters, year })}
-          />
-          <Typography
-            variant="body2"
+          {!isMobile && (
+            <ExpensesFilter
+              category={filters.category}
+              month={filters.month}
+              year={filters.year}
+              onCategoryChange={(category) =>
+                setFilters({ ...filters, category })
+              }
+              onMonthChange={(month) => setFilters({ ...filters, month })}
+              onYearChange={(year) => setFilters({ ...filters, year })}
+            />
+          )}
+          <Box
             sx={{
-              fontWeight: "bold",
-              color: "text.primary",
-              padding: 1,
-              borderRadius: 1,
-              marginBottom: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: { xs: "center", sm: "flex-start" },
+              width: { xs: "100%", sm: "auto" },
             }}
           >
-            Total $
-            {filteredExpenses
-              .reduce((sum, exp) => sum + exp.amount, 0)
-              .toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-          </Typography>
+            <Box className="total-amount-display-wrapper">
+              <Divider className="total-amount-divider" />
+              <Typography
+                className="total-amount-display"
+                variant="body2"
+                fontWeight="bold"
+              >
+                Total $
+                {filteredExpenses
+                  .reduce((sum, exp) => sum + exp.amount, 0)
+                  .toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
         {filteredExpenses.length === 0 ? (
@@ -514,6 +651,12 @@ export default function ExpensesList() {
               No expenses found
             </Typography>
           </Box>
+        ) : isMobile ? (
+          <ExpensesListMobile
+            expenses={filteredExpenses}
+            onDelete={handleDeleteClick}
+            onEdit={handleEditClick}
+          />
         ) : (
           <ExpensesTable
             expenses={filteredExpenses}

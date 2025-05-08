@@ -2,7 +2,7 @@
   max-width: 1280px;
   margin: 0 auto;
   padding:24px 0px;
-  text-align: center;
+  text-align: center; 
 }
 
 .logo {
@@ -157,4 +157,82 @@
 .expense-row .MuiTableCell-root:nth-child(3) {
   color: #8b0000;
   font-weight: 500;
+}
+
+.expenses-list-mobile {
+  padding: 0;
+}
+
+.expense-list-item-mobile {
+  align-items: flex-start;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px 0 rgba(60,60,60,0.10), 0 1.5px 4px 0 rgba(60,60,60,0.08);
+  transition: box-shadow 0.2s;
+}
+
+.expense-list-item-mobile:hover {
+  box-shadow: 0 4px 16px 0 rgba(60,60,60,0.13), 0 2px 8px 0 rgba(60,60,60,0.10);
+}
+
+.expense-list-item-mobile-primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expense-list-item-mobile-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.expense-list-item-mobile-amount {
+  color: #8b0000;
+  margin-left: 12px;
+  position: absolute;
+  top: 24px;
+  right: 75px;
+  text-align: right;
+}
+
+.expense-list-item-mobile-secondary {
+  color: #666;
+  font-size: 0.95em;
+}
+
+.total-amount-display {
+  color: #212121; 
+  padding: 8px 0px 16px 8px;
+  background-color: #f5f5f5;
+}
+
+.total-amount-divider {
+  display: none;
+}
+
+.total-amount-display-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content:center;
+  width: 100%;
+}
+
+/* MUI default breakpoint for 'sm' is 600px. 
+   This will apply to screens smaller than that. */
+@media (max-width: 599.95px) { 
+  .total-amount-display {
+    padding: 8px 8px; 
+    font-size: 0.6rem; 
+    font-weight: 500;
+    background-color: #f3f4f6;
+  }
+  .total-amount-divider {
+    width: 100%;
+    position: absolute;
+    display: block;
+    z-index: -1;
+  }
 }
