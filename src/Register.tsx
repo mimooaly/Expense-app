@@ -28,7 +28,7 @@ const Register: React.FC = () => {
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { displayName: name });
       }
-      navigate("/");
+      navigate("/expenses");
     } catch (error: any) {
       setError(error.message);
     }

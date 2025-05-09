@@ -221,6 +221,16 @@
   width: 100%;
 }
 
+.no-shadow {
+  box-shadow: none !important;
+}
+.total-amount-display-wrapper-pie {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
 /* MUI default breakpoint for 'sm' is 600px. 
    This will apply to screens smaller than that. */
 @media (max-width: 599.95px) { 
@@ -238,12 +248,16 @@
   }
   .add-expense-button {
     position: fixed !important;
-    bottom: 16px;
-    right: 16px;
-    z-index: 1;
+    bottom: 70px;
+    right: 45%;
+    z-index: 1120 !important;
   }
   .manage-recurring-button {
     margin-right: -16px !important;
+  }
+  .total-amount-display-wrapper {
+    top: 32%;
+    left: 50%;
   }
 }
 
