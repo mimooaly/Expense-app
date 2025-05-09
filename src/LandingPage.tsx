@@ -8,7 +8,7 @@ import {
   Toolbar,
   Stack,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Smartphone,
   Globe,
@@ -76,7 +76,6 @@ const FeatureCard: React.FC<{
 
 const LandingPage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
