@@ -82,8 +82,12 @@ const Header: React.FC = () => {
       .toUpperCase();
   };
 
-  // Don't show header on login or register pages
-  if (location.pathname === "/login" || location.pathname === "/register") {
+  // Don't show header on landing, login or register pages
+  if (
+    location.pathname === "/" ||
+    location.pathname === "/login" ||
+    location.pathname === "/register"
+  ) {
     return null;
   }
 
@@ -110,7 +114,11 @@ const Header: React.FC = () => {
               alt="Logo"
               style={{ width: 56, height: 56, marginRight: 8 }}
             />
-            <Typography variant="body1" component="div">
+            <Typography
+              variant="body1"
+              component="div"
+              sx={{ color: "text.primary" }}
+            >
               Penny Logs
             </Typography>
           </Box>

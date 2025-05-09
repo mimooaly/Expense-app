@@ -1,73 +1,43 @@
-import React, { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  Link,
-} from "react-router-dom";
-import { ThemeProvider } from "@mui/material/styles";
-import { auth } from "./firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
-import ExpensesList from "./ExpensesList";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material";
+import CssBaseline from "@mui/material/CssBaseline";
 import Login from "./Login";
 import Register from "./Register";
-import theme from "./theme";
-import "./App.css";
+import Dashboard from "./Dashboard";
+import ExpensesList from "./ExpensesList";
+import LandingPage from "./LandingPage";
+import Support from "./Support";
 import Header from "./components/Header";
-import DashboardPage from "./Dashboard";
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  return <>{children}</>;
-}
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#2E7D32",
+    },
+    background: {
+      default: "#FAFAFA",
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
+  },
+});
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <Router>
-        <div className="App">
-          <Header />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <DashboardPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/expenses"
-              element={
-                <PrivateRoute>
-                  <ExpensesList />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/login" />} />
-          </Routes>
-        </div>
+        <Header />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/expenses" element={<ExpensesList />} />
+        </Routes>
       </Router>
     </ThemeProvider>
   );
