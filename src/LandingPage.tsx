@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Box,
@@ -8,7 +8,7 @@ import {
   Toolbar,
   Stack,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Smartphone,
   Globe,
@@ -21,6 +21,8 @@ import {
 import dashboardImage from "./assets/dashboard.png";
 import expensesImage from "./assets/expenses.png";
 import iconImage from "./assets/icon.png";
+import { auth } from "./firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
 
 const FeatureCard: React.FC<{
   icon: React.ReactNode;
@@ -73,6 +75,16 @@ const FeatureCard: React.FC<{
 );
 
 const LandingPage: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <Box sx={{ bgcolor: "#FAFAFA" }}>
       {/* Minimal Header */}
@@ -105,30 +117,61 @@ const LandingPage: React.FC = () => {
               Penny Logs
             </Typography>
           </Box>
-          <Stack direction="row" spacing={2}>
-            <Button
-              component={Link}
-              to="/login"
-              variant="text"
-              size="large"
-              sx={{ fontWeight: 500 }}
-            >
-              Login
-            </Button>
-            <Button
-              component={Link}
-              to="/register"
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: 2,
-                px: 3,
-                fontWeight: 500,
-                boxShadow: "0 4px 12px rgba(46, 125, 50, 0.2)",
-              }}
-            >
-              Get Started
-            </Button>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ display: { xs: "none", sm: "flex" } }}
+          >
+            {user ? (
+              <>
+                <Button
+                  component={Link}
+                  to="/dashboard"
+                  variant="text"
+                  size="large"
+                  startIcon={<BarChart2 size={20} />}
+                  sx={{ fontWeight: 500 }}
+                >
+                  Dashboard
+                </Button>
+                <Button
+                  component={Link}
+                  to="/expenses"
+                  variant="text"
+                  size="large"
+                  startIcon={<List size={20} />}
+                  sx={{ fontWeight: 500 }}
+                >
+                  Expenses
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="text"
+                  size="large"
+                  sx={{ fontWeight: 500 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  component={Link}
+                  to="/register"
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    borderRadius: 2,
+                    px: 3,
+                    fontWeight: 500,
+                    boxShadow: "0 4px 12px rgba(46, 125, 50, 0.2)",
+                  }}
+                >
+                  Get Started
+                </Button>
+              </>
+            )}
           </Stack>
         </Toolbar>
       </AppBar>

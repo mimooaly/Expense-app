@@ -109,18 +109,27 @@ const Header: React.FC = () => {
       >
         <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: 56 }}>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <img
-              src="/icon.png"
-              alt="Logo"
-              style={{ width: 56, height: 56, marginRight: 8 }}
-            />
-            <Typography
-              variant="body1"
-              component="div"
-              sx={{ color: "text.primary" }}
+            <Link
+              to="/"
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+              }}
             >
-              Penny Logs
-            </Typography>
+              <img
+                src="/icon.png"
+                alt="Logo"
+                style={{ width: 56, height: 56, marginRight: 8 }}
+              />
+              <Typography
+                variant="body1"
+                component="div"
+                sx={{ color: "text.primary" }}
+              >
+                Penny Logs
+              </Typography>
+            </Link>
           </Box>
           {!isMobile && (
             <Box
