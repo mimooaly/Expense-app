@@ -4,8 +4,6 @@ import {
   Box,
   Typography,
   Button,
-  useTheme,
-  useMediaQuery,
   AppBar,
   Toolbar,
   Stack,
@@ -75,9 +73,6 @@ const FeatureCard: React.FC<{
 );
 
 const LandingPage: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   return (
     <Box sx={{ bgcolor: "#FAFAFA" }}>
       {/* Minimal Header */}

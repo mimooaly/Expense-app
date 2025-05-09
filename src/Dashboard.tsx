@@ -12,7 +12,6 @@ import {
   useMediaQuery,
   Card,
   CardContent,
-  Divider,
   Skeleton,
   Paper,
 } from "@mui/material";
@@ -125,21 +124,6 @@ const DashboardPage: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Add helper function to get week number
-  const getWeekNumber = (date: Date) => {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear =
-      (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  };
-
-  // Add helper function to get week start date
-  const getWeekStartDate = (date: Date) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
-  };
-
   // Update the data processing for expenses over time
   useEffect(() => {
     const startDate = getStartDateForPeriod(timePeriod);
@@ -211,7 +195,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleTimePeriodChange = (
-    event: React.MouseEvent<HTMLElement>,
+    _: React.MouseEvent<HTMLElement>,
     newPeriod: TimePeriod | null
   ) => {
     if (newPeriod !== null) {
@@ -458,7 +442,7 @@ const DashboardPage: React.FC = () => {
                         dataKey="value"
                         paddingAngle={2}
                       >
-                        {pieChartData.slice(0, 10).map((entry, index) => (
+                        {pieChartData.slice(0, 10).map((_, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={COLORS[index % COLORS.length]}
@@ -491,7 +475,7 @@ const DashboardPage: React.FC = () => {
                         layout="horizontal"
                         verticalAlign="bottom"
                         align="center"
-                        formatter={(value, entry: any) => (
+                        formatter={(value, _: any) => (
                           <Typography
                             variant="body2"
                             sx={{
