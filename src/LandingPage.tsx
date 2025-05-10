@@ -432,15 +432,7 @@ const LandingPage: React.FC = () => {
             alignItems: "center",
           }}
         >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 300,
-              mb: 2,
-              color: "#3A5D3A",
-              fontFamily: "Inter, Helvetica, Arial, sans-serif",
-            }}
-          >
+          <Typography variant="h4" className="sectionTitle">
             Why Use Penny Logs?
           </Typography>
           <Typography
@@ -527,10 +519,7 @@ const LandingPage: React.FC = () => {
             textAlign: "center",
           }}
         >
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 700, mb: 2, color: "#3A5D3A" }}
-          >
+          <Typography variant="h4" className="sectionTitle">
             Supported Currencies
           </Typography>
           <Typography
@@ -637,10 +626,7 @@ const LandingPage: React.FC = () => {
         >
           {/* Left Box - Text */}
           <Box sx={{ flex: 1, mb: { xs: 6, md: 0, textAlign: "left" } }}>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, mb: 3, color: "#3A5D3A" }}
-            >
+            <Typography variant="h4" className="sectionTitle">
               About This Project
             </Typography>
             <Typography
@@ -730,10 +716,7 @@ const LandingPage: React.FC = () => {
               />
             </svg>
           </Box>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 700, mb: 1, color: "#3A5D3A" }}
-          >
+          <Typography variant="h4" className="sectionTitle">
             Support This Project
           </Typography>
           <Typography

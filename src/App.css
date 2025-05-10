@@ -47,7 +47,12 @@
 .App {
   padding-top: 24px;
 }
-
+.sectionTitle {
+  font-weight: 300;
+  margin-bottom: 16px;
+  color: #57A556;
+  font-family: "Inter, Helvetica, Arial, sans-serif";
+}
 .expense-row {
   transition: box-shadow 0.2s;
 }
