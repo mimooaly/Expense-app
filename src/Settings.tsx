@@ -26,7 +26,7 @@ import { Edit2, Trash2, Folder } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
-import { ref, onValue, push, remove, update, set } from "firebase/database";
+import { ref, push, remove, update, set } from "firebase/database";
 
 interface Category {
   id: string;
@@ -281,14 +281,16 @@ const Settings = () => {
                 ))}
               </TableBody>
             </Table>
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              Add Custom Category
-            </Button>
+            <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                sx={{ mt: 2 }}
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                Add Custom Category
+              </Button>
+            </Box>
           </CardContent>
         </Card>
       </Box>
