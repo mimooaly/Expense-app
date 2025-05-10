@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Box, Typography, Button, Stack } from "@mui/material";
+import { Box, Typography, Button, Stack } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import iconImage from "./assets/icon.png";
 import appVideo from "./assets/app.mp4";

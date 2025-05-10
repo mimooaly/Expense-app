@@ -21,9 +21,9 @@ export function useCategories() {
     const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
     const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
 
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
       const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
         const prefsData = prefsSnapshot.val();
         const modifiedData = prefsData?.modifiedCategories || {};
 

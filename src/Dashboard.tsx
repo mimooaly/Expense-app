@@ -157,12 +157,6 @@ const DashboardPage: React.FC = () => {
     return expenseDate >= startDate && expenseDate <= endDate;
   });
 
-  // Get category name from ID
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    return category ? category.name : "Uncategorized";
-  };
-
   // Get category icon
   const getCategoryIcon = (iconName: string) => {
     if (iconName === "folder") {

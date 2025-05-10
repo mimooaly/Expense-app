@@ -36,7 +36,7 @@ import { useTheme } from "@mui/material/styles";
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import { Trash2, Edit2, Plus, Play, Pause } from "react-feather";
+import { Trash2, Edit2 } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
@@ -128,9 +128,9 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
     const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
     const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
 
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
       const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
         const prefsData = prefsSnapshot.val();
         const modifiedData = prefsData?.modifiedCategories || {};
 
@@ -299,9 +299,9 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
     const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
     const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
 
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
       const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
         const prefsData = prefsSnapshot.val();
         const modifiedData = prefsData?.modifiedCategories || {};
 
@@ -454,7 +454,7 @@ export default function ExpensesList() {
       }
 
       const expensesRef = ref(database, `expenses/${user.uid}`);
-      const unsubscribe = onValue(expensesRef, async (snapshot) => {
+      const unsubscribe = onValue(expensesRef, async (snapshot: any) => {
         const data = snapshot.val();
         if (data) {
           const expensesList = Object.entries(data).map(
@@ -523,7 +523,7 @@ export default function ExpensesList() {
     const unsubscribe = fetchExpenses(user);
 
     // Listen for auth state changes
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user: any) => {
       fetchExpenses(user);
     });
 
@@ -708,28 +708,6 @@ export default function ExpensesList() {
     } catch (error) {
       console.error("Error toggling pause:", error);
     }
-  };
-
-  const getNextDate = (expense: Expense) => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    // If the expense is paused, return null
-    if (expense.isPaused) return null;
-
-    // If the expense was added this month, return next month
-    const lastAdded = new Date(expense.lastAdded || expense.date);
-    if (
-      lastAdded.getMonth() === currentMonth &&
-      lastAdded.getFullYear() === currentYear
-    ) {
-      const nextMonth = new Date(currentYear, currentMonth + 1, 1);
-      return nextMonth.toISOString().split("T")[0];
-    }
-
-    // If the expense hasn't been added this month, return current month
-    return new Date(currentYear, currentMonth, 1).toISOString().split("T")[0];
   };
 
   const isExpenseInCurrentMonth = (expense: Expense) => {

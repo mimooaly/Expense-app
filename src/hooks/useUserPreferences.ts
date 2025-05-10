@@ -22,7 +22,7 @@ export const useUserPreferences = () => {
     }
 
     const preferencesRef = ref(database, `userPreferences/${user.uid}`);
-    const unsubscribe = onValue(preferencesRef, (snapshot) => {
+    const unsubscribe = onValue(preferencesRef, (snapshot: any) => {
       const data = snapshot.val();
       if (data) {
         setPreferences({
