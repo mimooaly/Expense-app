@@ -36,12 +36,13 @@ import { useTheme } from "@mui/material/styles";
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import { Trash2, Edit2, Plus } from "react-feather";
+import { Trash2, Edit2, Plus, Play, Pause } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCategories } from "./hooks/useCategories";
+import RecurringExpensesDialog from "./components/RecurringExpensesDialog";
 
 interface Category {
   id: string;
@@ -60,6 +61,8 @@ export interface Expense {
   monthly: boolean;
   lastAdded: string;
   startDate: string;
+  isPaused: boolean;
+  nextDate: string;
 }
 
 interface ExpensesTableProps {
@@ -445,7 +448,7 @@ export default function ExpensesList() {
       }
 
       const expensesRef = ref(database, `expenses/${user.uid}`);
-      const unsubscribe = onValue(expensesRef, (snapshot) => {
+      const unsubscribe = onValue(expensesRef, async (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const expensesList = Object.entries(data).map(
@@ -454,7 +457,53 @@ export default function ExpensesList() {
               ...value,
             })
           );
-          setExpenses(expensesList);
+
+          // Handle duplicate recurring expenses
+          const recurringExpensesMap = new Map<string, Expense>();
+
+          // First pass: find duplicates and keep the one with highest amount
+          expensesList.forEach((expense) => {
+            if (expense.monthly) {
+              const key = `${expense.name}_${expense.category}`;
+              const existing = recurringExpensesMap.get(key);
+
+              if (!existing || expense.amount > existing.amount) {
+                recurringExpensesMap.set(key, expense);
+              }
+            }
+          });
+
+          // Second pass: mark duplicates as non-recurring
+          const updatedExpenses = await Promise.all(
+            expensesList.map(async (expense) => {
+              if (expense.monthly) {
+                const key = `${expense.name}_${expense.category}`;
+                const highestAmountExpense = recurringExpensesMap.get(key);
+
+                if (
+                  highestAmountExpense &&
+                  highestAmountExpense.id !== expense.id
+                ) {
+                  // This is a duplicate, mark it as non-recurring
+                  try {
+                    await update(
+                      ref(database, `expenses/${user.uid}/${expense.id}`),
+                      {
+                        monthly: false,
+                      }
+                    );
+                    return { ...expense, monthly: false };
+                  } catch (error) {
+                    console.error("Error updating duplicate expense:", error);
+                    return expense;
+                  }
+                }
+              }
+              return expense;
+            })
+          );
+
+          setExpenses(updatedExpenses);
         } else {
           setExpenses([]);
         }
@@ -524,9 +573,16 @@ export default function ExpensesList() {
             ?.name || "";
       }
 
+      const today = new Date();
+      const todayISOString = today.toISOString();
+      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
       await push(ref(database, `expenses/${user.uid}`), {
         ...values,
         categoryName,
+        isPaused: false,
+        nextDate: nextMonth.toISOString().split("T")[0],
+        lastAdded: values.monthly ? todayISOString : "",
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -636,51 +692,160 @@ export default function ExpensesList() {
     }
   };
 
-  // Handler to bulk add all recurring expenses to the expense list with today's date
-  const handleBulkAddRecurring = async () => {
+  const handleTogglePause = async (expense: Expense) => {
     const user = auth.currentUser;
     if (!user) return;
-    const today = new Date();
-    const todayISOString = today.toISOString();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-
-    // Check if any recurring expense already exists for the current month
-    const alreadyExists = recurringExpenses.some((recExp) =>
-      expenses.some(
-        (exp) =>
-          exp.name === recExp.name &&
-          exp.category === recExp.category &&
-          new Date(exp.date).getMonth() + 1 === currentMonth &&
-          new Date(exp.date).getFullYear() === currentYear
-      )
-    );
-
-    if (alreadyExists) {
-      alert(
-        "One or more recurring expenses already exist for this month. No expenses were added."
-      );
-      return;
-    }
-
     try {
-      for (const exp of recurringExpenses) {
-        await push(ref(database, `expenses/${user.uid}`), {
-          name: exp.name || "Untitled",
-          amount: exp.amount !== undefined ? exp.amount : 0,
-          category: exp.category || 1, // Default to first category id
-          categoryName: exp.categoryName || "Uncategorized",
-          date: todayISOString,
-          monthly: exp.monthly !== undefined ? exp.monthly : true,
-          startDate: exp.startDate || todayISOString,
-        });
-      }
-      setIsRecurringDialogOpen(false);
+      await update(ref(database, `expenses/${user.uid}/${expense.id}`), {
+        isPaused: !expense.isPaused,
+      });
     } catch (error) {
-      console.error("Bulk add failed:", error);
-      alert("Failed to add recurring expenses. See console for details.");
+      console.error("Error toggling pause:", error);
     }
   };
+
+  const getNextDate = (expense: Expense) => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    // If the expense is paused, return null
+    if (expense.isPaused) return null;
+
+    // If the expense was added this month, return next month
+    const lastAdded = new Date(expense.lastAdded || expense.date);
+    if (
+      lastAdded.getMonth() === currentMonth &&
+      lastAdded.getFullYear() === currentYear
+    ) {
+      const nextMonth = new Date(currentYear, currentMonth + 1, 1);
+      return nextMonth.toISOString().split("T")[0];
+    }
+
+    // If the expense hasn't been added this month, return current month
+    return new Date(currentYear, currentMonth, 1).toISOString().split("T")[0];
+  };
+
+  const isExpenseInCurrentMonth = (expense: Expense) => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    // Check if the expense exists in the current month
+    const existsThisMonth = expenses.some(
+      (exp) =>
+        exp.name === expense.name &&
+        exp.category === exp.category &&
+        new Date(exp.date).getMonth() === currentMonth &&
+        new Date(exp.date).getFullYear() === currentYear
+    );
+
+    // If it exists this month, return true
+    if (existsThisMonth) {
+      console.log(`Expense ${expense.name} exists in current month's list`);
+      return true;
+    }
+
+    // If it's paused, return false
+    if (expense.isPaused) {
+      console.log(`Expense ${expense.name} is paused`);
+      return false;
+    }
+
+    // If it was added this month (based on lastAdded), return true
+    if (expense.lastAdded) {
+      const lastAdded = new Date(expense.lastAdded);
+      if (
+        lastAdded.getMonth() === currentMonth &&
+        lastAdded.getFullYear() === currentYear
+      ) {
+        console.log(
+          `Expense ${expense.name} was added this month (lastAdded: ${expense.lastAdded})`
+        );
+        return true;
+      }
+    }
+
+    console.log(
+      `Expense ${expense.name} will be added on 1st (lastAdded: ${expense.lastAdded})`
+    );
+    return false;
+  };
+
+  const checkAndAddRecurringExpenses = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const todayISOString = today.toISOString();
+
+    // Only run on the 1st of the month
+    if (today.getDate() !== 1) return;
+
+    try {
+      // Get all expenses
+      const expensesRef = ref(database, `expenses/${user.uid}`);
+      const snapshot = await get(expensesRef);
+      const data = snapshot.val();
+      if (!data) return;
+
+      const expensesList = Object.entries(data).map(
+        ([id, value]: [string, any]) => ({
+          id,
+          ...value,
+        })
+      );
+
+      // Filter active recurring expenses
+      const activeRecurringExpenses = expensesList.filter(
+        (exp) => exp.monthly && !exp.isPaused
+      );
+
+      // Check and add each recurring expense
+      for (const exp of activeRecurringExpenses) {
+        // Check if already added this month
+        const existsThisMonth = expensesList.some(
+          (e) =>
+            e.name === exp.name &&
+            e.category === exp.category &&
+            new Date(e.date).getMonth() === currentMonth &&
+            new Date(e.date).getFullYear() === currentYear
+        );
+
+        if (!existsThisMonth) {
+          // Add the expense
+          await push(ref(database, `expenses/${user.uid}`), {
+            name: exp.name,
+            amount: exp.amount,
+            category: exp.category,
+            categoryName: exp.categoryName,
+            date: todayISOString,
+            monthly: false, // The new instance is not recurring
+          });
+
+          // Update lastAdded date of the recurring expense
+          await update(ref(database, `expenses/${user.uid}/${exp.id}`), {
+            lastAdded: todayISOString,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error auto-adding recurring expenses:", error);
+    }
+  };
+
+  // Add useEffect for auto-adding recurring expenses
+  useEffect(() => {
+    // Check immediately when component mounts
+    checkAndAddRecurringExpenses();
+
+    // Set up interval to check every hour
+    const interval = setInterval(checkAndAddRecurringExpenses, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Container maxWidth="lg" className="page-glossy-background">
@@ -899,74 +1064,14 @@ export default function ExpensesList() {
           </DialogActions>
         </Dialog>
 
-        <Dialog
+        <RecurringExpensesDialog
           open={isRecurringDialogOpen}
           onClose={() => setIsRecurringDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Recurring Expenses</DialogTitle>
-          <DialogContent>
-            {recurringExpenses.length === 0 ? (
-              <Typography>No recurring expenses found.</Typography>
-            ) : (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recurringExpenses.map((exp) => (
-                      <TableRow key={exp.id}>
-                        <TableCell>{exp.name}</TableCell>
-                        <TableCell>${exp.amount.toFixed(2)}</TableCell>
-                        <TableCell>{exp.categoryName}</TableCell>
-                        <TableCell>
-                          <IconButton
-                            onClick={() => handleDisableRecurring(exp)}
-                            color="error"
-                            size="small"
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={handleBulkAddRecurring}
-              color="primary"
-              variant="outlined"
-              sx={{
-                color: "success.dark",
-                borderColor: "primary.main",
-                "&:hover": {
-                  borderColor: "primary.main",
-                  backgroundColor: "primary.light",
-                },
-              }}
-            >
-              <Plus size={16} style={{ marginRight: 8 }} />
-              Add all for this month expenses
-            </Button>
-            <Button
-              onClick={() => setIsRecurringDialogOpen(false)}
-              variant="contained"
-            >
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
+          recurringExpenses={recurringExpenses}
+          onTogglePause={handleTogglePause}
+          onDisableRecurring={handleDisableRecurring}
+          isExpenseInCurrentMonth={isExpenseInCurrentMonth}
+        />
       </Box>
     </Container>
   );
