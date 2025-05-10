@@ -4,7 +4,6 @@ import {
   CardContent,
   Container,
   MenuItem,
-  Select,
   Typography,
   Table,
   TableCell,
@@ -19,6 +18,8 @@ import {
   DialogActions,
   TextField,
   Tooltip,
+  Paper,
+  CircularProgress,
 } from "@mui/material";
 import theme from "./theme";
 import { useState } from "react";
@@ -27,6 +28,7 @@ import * as FeatherIcons from "react-feather";
 import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, push, remove, update, set } from "firebase/database";
+import { useUserPreferences } from "./hooks/useUserPreferences";
 
 interface Category {
   id: string;
@@ -35,8 +37,26 @@ interface Category {
   isCustom?: boolean;
 }
 
+const currencyOptions = [
+  { code: "USD", label: "USD (United States Dollar)" },
+  { code: "PHP", label: "PHP (Philippine Peso)" },
+  { code: "EGP", label: "EGP (Egyptian Pound)" },
+  { code: "INR", label: "INR (Indian Rupee)" },
+  { code: "CNY", label: "CNY (Chinese Yuan)" },
+  { code: "JPY", label: "JPY (Japanese Yen)" },
+  { code: "IDR", label: "IDR (Indonesia)" },
+  { code: "NGN", label: "NGN (Nigeria)" },
+  { code: "KES", label: "KES (Kenya)" },
+  { code: "VND", label: "VND (Vietnam)" },
+  { code: "KHR", label: "KHR (Cambodia)" },
+  { code: "PKR", label: "PKR (Pakistan)" },
+  { code: "BDT", label: "BDT (Bangladesh)" },
+  { code: "MXN", label: "MXN (Mexico)" },
+  { code: "COP", label: "COP (Colombia)" },
+  { code: "PEN", label: "PEN (Peru)" },
+];
+
 const Settings = () => {
-  const [defaultCurrency, setDefaultCurrency] = useState("USD");
   const categories = useCategories();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -44,6 +64,8 @@ const Settings = () => {
     null
   );
   const [newCategoryName, setNewCategoryName] = useState("");
+  const { preferences, loading, updatePreferences } = useUserPreferences();
+  const [saving, setSaving] = useState(false);
 
   const handleAddCategory = async () => {
     const user = auth.currentUser;
@@ -123,17 +145,18 @@ const Settings = () => {
     }
   };
 
-  const handleCurrencyChange = async (newCurrency: string) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
+  const handleCurrencyChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setSaving(true);
     try {
-      await update(ref(database, `userPreferences/${user.uid}`), {
-        defaultCurrency: newCurrency,
+      await updatePreferences({
+        defaultCurrency: event.target.value,
       });
-      setDefaultCurrency(newCurrency);
     } catch (error) {
       console.error("Error updating currency:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -161,28 +184,60 @@ const Settings = () => {
     ) : null;
   };
 
+  if (loading) {
+    return (
+      <Container maxWidth="lg" className="page-glossy-background">
+        <Box sx={{ my: 4, display: "flex", justifyContent: "center" }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="md" className="page-glossy-background" sx={{ mt: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
+    <Container maxWidth="lg" className="page-glossy-background">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" sx={{ mb: 4 }}>
           Settings
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Manage your account settings
-        </Typography>
-      </Box>
 
-      {/* Default Currency */}
-      <Box sx={{ mb: 4 }}>
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <CardContent>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box className="settings-currency-box">
+            <Typography variant="h6">Default Currency</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              This currency will be used as the default for all expenses. You
+              can still use other currencies when adding expenses.
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <TextField
+              select
+              label="Default Currency"
+              value={preferences.defaultCurrency}
+              onChange={handleCurrencyChange}
+              disabled={saving}
+              sx={{ minWidth: 200 }}
+            >
+              {currencyOptions.map((option) => (
+                <MenuItem key={option.code} value={option.code}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+            {saving && <CircularProgress size={24} />}
+          </Box>
+        </Paper>
+
+        {/* Manage Categories */}
+        <Box sx={{ mb: 4 }}>
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: 1,
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
+            <CardContent>
               <Box
                 sx={{
                   display: "flex",
@@ -190,167 +245,135 @@ const Settings = () => {
                   textAlign: "left",
                 }}
               >
-                <Typography variant="h6">Default Currency</Typography>
+                <Typography variant="h6">Manage Categories</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Select your default currency
+                  Manage your expense categories
                 </Typography>
               </Box>
-              <Select
-                value={defaultCurrency}
-                onChange={(e) => handleCurrencyChange(e.target.value)}
-                sx={{ ml: "auto" }}
-              >
-                <MenuItem value="USD">USD</MenuItem>
-                <MenuItem value="EGP">EGP</MenuItem>
-                <MenuItem value="PHP">PHP</MenuItem>
-              </Select>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Manage Categories */}
-      <Box sx={{ mb: 4 }}>
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                textAlign: "left",
-              }}
-            >
-              <Typography variant="h6">Manage Categories</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Manage your expense categories
-              </Typography>
-            </Box>
-            <Table size="small" sx={{ mt: 2, border: "1px solid #e0e0e0" }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        {getCategoryIcon(category.icon)}
-                        {category.name}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {category.isCustom ? "Custom" : "Default"}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        onClick={() => {
-                          setSelectedCategory(category);
-                          setIsEditDialogOpen(true);
-                        }}
-                      >
-                        <Edit2 size={16} />
-                      </IconButton>
-                      <Tooltip
-                        title={
-                          category.isCustom
-                            ? "Delete category"
-                            : "You can't delete default categories"
-                        }
-                      >
-                        <span>
-                          <IconButton
-                            onClick={() => handleDeleteCategory(category)}
-                            disabled={!category.isCustom}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </TableCell>
+              <Table size="small" sx={{ mt: 2, border: "1px solid #e0e0e0" }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Category</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
-              <Button
-                variant="outlined"
-                color="primary"
-                sx={{ mt: 2 }}
-                onClick={() => setIsAddDialogOpen(true)}
-              >
-                Add Custom Category
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+                </TableHead>
+                <TableBody>
+                  {categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {getCategoryIcon(category.icon)}
+                          {category.name}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {category.isCustom ? "Custom" : "Default"}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          onClick={() => {
+                            setSelectedCategory(category);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit2 size={16} />
+                        </IconButton>
+                        <Tooltip
+                          title={
+                            category.isCustom
+                              ? "Delete category"
+                              : "You can't delete default categories"
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              onClick={() => handleDeleteCategory(category)}
+                              disabled={!category.isCustom}
+                            >
+                              <Trash2 size={16} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  sx={{ mt: 2 }}
+                  onClick={() => setIsAddDialogOpen(true)}
+                >
+                  Add Custom Category
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
 
-      {/* Add Category Dialog */}
-      <Dialog open={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)}>
-        <DialogTitle>Add Custom Category</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Category Name"
-            fullWidth
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddCategory} variant="contained">
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Edit Category Dialog */}
-      <Dialog
-        open={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-      >
-        <DialogTitle>Edit Category</DialogTitle>
-        <DialogContent>
-          {selectedCategory && (
+        {/* Add Category Dialog */}
+        <Dialog
+          open={isAddDialogOpen}
+          onClose={() => setIsAddDialogOpen(false)}
+        >
+          <DialogTitle>Add Custom Category</DialogTitle>
+          <DialogContent>
             <TextField
               autoFocus
               margin="dense"
               label="Category Name"
               fullWidth
-              value={selectedCategory.name}
-              onChange={(e) =>
-                setSelectedCategory({
-                  ...selectedCategory,
-                  name: e.target.value,
-                })
-              }
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
             />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={() =>
-              selectedCategory && handleEditCategory(selectedCategory)
-            }
-            variant="contained"
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddCategory} variant="contained">
+              Add
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Edit Category Dialog */}
+        <Dialog
+          open={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+        >
+          <DialogTitle>Edit Category</DialogTitle>
+          <DialogContent>
+            {selectedCategory && (
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Category Name"
+                fullWidth
+                value={selectedCategory.name}
+                onChange={(e) =>
+                  setSelectedCategory({
+                    ...selectedCategory,
+                    name: e.target.value,
+                  })
+                }
+              />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() =>
+                selectedCategory && handleEditCategory(selectedCategory)
+              }
+              variant="contained"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Container>
   );
 };

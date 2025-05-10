@@ -43,6 +43,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCategories } from "./hooks/useCategories";
 import RecurringExpensesDialog from "./components/RecurringExpensesDialog";
+import { useUserPreferences } from "./hooks/useUserPreferences";
 
 interface Category {
   id: string;
@@ -117,6 +118,7 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<keyof Expense>("date");
   const [categories, setCategories] = useState<Category[]>([]);
+  const { preferences } = useUserPreferences();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -258,7 +260,9 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
                 </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>{expense.name}</TableCell>
-              <TableCell>${expense.amount.toFixed(2)}</TableCell>
+              <TableCell>
+                {expense.amount.toFixed(2)} {preferences.defaultCurrency}
+              </TableCell>
               <TableCell>
                 {new Date(expense.date).toLocaleDateString()}
               </TableCell>
@@ -285,6 +289,7 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   onEdit,
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const { preferences } = useUserPreferences();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -394,11 +399,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
             secondary={
               <>
                 <span className="expense-list-item-mobile-amount">
-                  $
                   {expense.amount.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })}{" "}
+                  {preferences.defaultCurrency}
                 </span>
                 <span className="expense-list-item-mobile-secondary">
                   {expense.categoryName} •{" "}
@@ -436,6 +441,7 @@ export default function ExpensesList() {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
   const categories = useCategories();
+  const { preferences } = useUserPreferences();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -998,13 +1004,14 @@ export default function ExpensesList() {
                 variant="body2"
                 fontWeight="bold"
               >
-                Total $
+                Total{" "}
                 {filteredExpenses
                   .reduce((sum, exp) => sum + exp.amount, 0)
                   .toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })}{" "}
+                {preferences.defaultCurrency}
               </Typography>
             </Box>
           </Box>

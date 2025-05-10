@@ -19,6 +19,7 @@ import {
 import { Trash2, Play, Pause } from "react-feather";
 import { Expense } from "../ExpensesList";
 import emptyImage from "../assets/empty.png";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 interface RecurringExpensesDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
   onDisableRecurring,
   isExpenseInCurrentMonth,
 }) => {
+  const { preferences } = useUserPreferences();
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Recurring Expenses</DialogTitle>
@@ -72,7 +74,9 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
                     return (
                       <TableRow key={exp.id}>
                         <TableCell>{exp.name}</TableCell>
-                        <TableCell>${exp.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {exp.amount.toFixed(2)} {preferences.defaultCurrency}
+                        </TableCell>
                         <TableCell>{exp.categoryName}</TableCell>
                         <TableCell>
                           {exp.isPaused ? (

@@ -241,7 +241,13 @@ body {
   display: flex;
   flex-direction: column;
 }
-
+.settings-currency-box {
+  margin-bottom: 16px;
+  text-align: left;
+  display: flex;
+  gap: 2;
+  flex-direction: column;
+}
 .manage-recurring-button:hover {
   color: #1b5e20;
   background-color: rgba(46, 125, 50, 0.12);

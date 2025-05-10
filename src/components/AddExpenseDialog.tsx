@@ -21,6 +21,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { database, auth } from "../firebaseConfig";
 import { ref, onValue } from "firebase/database";
 import { useCategories } from "../hooks/useCategories";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -41,6 +42,19 @@ const currencyOptions = [
   { code: "USD", label: "USD" },
   { code: "PHP", label: "PHP" },
   { code: "EGP", label: "EGP" },
+  { code: "INR", label: "INR (India)" },
+  { code: "CNY", label: "CNY (China)" },
+  { code: "JPY", label: "JPY (Japan)" },
+  { code: "IDR", label: "IDR (Indonesia)" },
+  { code: "NGN", label: "NGN (Nigeria)" },
+  { code: "KES", label: "KES (Kenya)" },
+  { code: "VND", label: "VND (Vietnam)" },
+  { code: "KHR", label: "KHR (Cambodia)" },
+  { code: "PKR", label: "PKR (Pakistan)" },
+  { code: "BDT", label: "BDT (Bangladesh)" },
+  { code: "MXN", label: "MXN (Mexico)" },
+  { code: "COP", label: "COP (Colombia)" },
+  { code: "PEN", label: "PEN (Peru)" },
 ];
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
@@ -55,6 +69,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   const [usdAmount, setUsdAmount] = useState<number | null>(null);
   const [converting, setConverting] = useState(false);
   const categories = useCategories();
+  const { preferences } = useUserPreferences();
 
   const formik = useFormik({
     initialValues: initialValues || {
@@ -88,37 +103,34 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     },
   });
 
-  const convertToUSD = async (amount: number, fromCurrency: string) => {
-    if (fromCurrency === "USD" || !amount) {
+  const convertToPreferredCurrency = async (
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ) => {
+    if (fromCurrency === toCurrency || !amount) {
       setUsdAmount(amount);
       return;
     }
-
     setConverting(true);
     try {
-      console.log(`Converting ${amount} ${fromCurrency} to USD`);
       const res = await fetch(
         `https://open.er-api.com/v6/latest/${fromCurrency}`
       );
-
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-
       const data = await res.json();
-      console.log("Conversion response:", data);
-
-      if (data.rates && data.rates.USD) {
-        const convertedAmount = amount * data.rates.USD;
+      if (data.rates && data.rates[toCurrency]) {
+        const rate = data.rates[toCurrency];
+        const convertedAmount = amount * rate;
         setUsdAmount(convertedAmount);
         setError("");
       } else {
-        console.error("Conversion failed:", data);
         setError("Conversion failed. Please try again.");
         setUsdAmount(null);
       }
     } catch (e) {
-      console.error("Conversion error:", e);
       setError("Conversion failed. Please try again.");
       setUsdAmount(null);
     }
@@ -127,17 +139,27 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
   useEffect(() => {
     if (formik.values.amount && !isNaN(Number(formik.values.amount))) {
-      convertToUSD(Number(formik.values.amount), currency);
+      convertToPreferredCurrency(
+        Number(formik.values.amount),
+        currency,
+        preferences.defaultCurrency
+      );
     } else {
       setUsdAmount(null);
     }
-  }, [formik.values.amount, currency]);
+  }, [formik.values.amount, currency, preferences.defaultCurrency]);
 
   useEffect(() => {
     if (initialValues) {
       console.log("Initial values for edit:", initialValues);
     }
   }, [initialValues]);
+
+  useEffect(() => {
+    if (!isEdit) {
+      setCurrency(preferences.defaultCurrency);
+    }
+  }, [preferences.defaultCurrency, isEdit]);
 
   const getCategoryIcon = (iconName: string) => {
     if (iconName === "folder") {
@@ -232,7 +254,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
               helperText={formik.touched.amount && formik.errors.amount}
             />
           </Box>
-          {usdAmount !== null && (
+          {usdAmount !== null && currency !== preferences.defaultCurrency && (
             <Box
               sx={{
                 mt: 1,
@@ -249,7 +271,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
               ) : (
                 <>
                   <span>≈</span>
-                  <strong>{usdAmount.toFixed(2)} USD</strong>
+                  <strong>
+                    {usdAmount.toFixed(2)} {preferences.defaultCurrency}
+                  </strong>
                   {error && (
                     <span
                       style={{
