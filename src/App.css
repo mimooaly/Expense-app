@@ -209,7 +209,7 @@ body {
 .total-amount-display {
   color: #212121; 
   padding: 8px 0px 16px 8px;
-  background-color: #f5f5f5;
+  background-color: #FAFAFA;
 }
 
 .total-amount-divider {
@@ -241,6 +241,11 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+.manage-recurring-button:hover {
+  color: #1b5e20;
+  background-color: rgba(46, 125, 50, 0.12);
+}
 /* MUI default breakpoint for 'sm' is 600px. 
    This will apply to screens smaller than that. */
 @media (max-width: 599.95px) { 
@@ -248,7 +253,7 @@ body {
     padding: 8px 8px; 
     font-size: 0.6rem; 
     font-weight: 500;
-    background-color: #f3f4f6;
+    background-color: #FAFAFA;
   }
   .total-amount-divider {
     width: 100%;
@@ -259,11 +264,11 @@ body {
   .add-expense-button {
     position: fixed !important;
     bottom: 70px;
-    right: 45%;
+    right: 16px;
     z-index: 1120 !important;
   }
   .manage-recurring-button {
-    margin-right: -16px !important;
+    margin-right: 0px !important;
   }
   .total-amount-display-wrapper {
     top: 32%;

@@ -868,10 +868,6 @@ export default function ExpensesList() {
                 mr: 2,
                 color: "success.dark",
                 borderColor: "success.dark",
-                "&:hover": {
-                  borderColor: "success.dark",
-                  backgroundColor: "success.light",
-                },
               }}
             >
               Manage Recurring
