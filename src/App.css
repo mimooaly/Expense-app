@@ -40,7 +40,9 @@
   color: #888;
 }
 
-
+.marginContainer {
+  margin-top: 100px !important;
+}
 .expenses-filter-item {
   margin-bottom: 16px;
 }

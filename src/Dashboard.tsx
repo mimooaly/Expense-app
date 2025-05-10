@@ -331,7 +331,11 @@ const DashboardPage: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <Container>
+      <Container
+        maxWidth="lg"
+        sx={{ mt: 4, mb: 4 }}
+        className="marginContainer"
+      >
         <Typography variant="h6" align="center" sx={{ mt: 4 }}>
           Please log in to view the dashboard.
         </Typography>
@@ -340,7 +344,7 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }} className="marginContainer">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           Dashboard

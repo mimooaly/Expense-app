@@ -832,7 +832,10 @@ export default function ExpensesList() {
   }, []);
 
   return (
-    <Container maxWidth="lg" className="page-glossy-background">
+    <Container
+      maxWidth="lg"
+      className="page-glossy-background, marginContainer"
+    >
       <Box sx={{ my: 4 }}>
         <Box
           sx={{
