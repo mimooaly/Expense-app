@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Button, Stack } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Stack,
+  Drawer,
+  IconButton,
+} from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import iconImage from "./assets/icon.png";
 import appVideo from "./assets/app.mp4";
@@ -15,6 +22,7 @@ import {
   BarChart2,
   List,
   DollarSign,
+  Menu as MenuIcon,
 } from "react-feather";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -44,6 +52,7 @@ const currencyCountryMap: Record<string, { code: string; name: string }> = {
 const LandingPage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user: any) => {
@@ -51,6 +60,14 @@ const LandingPage: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  const navLinks = [
+    { label: "Home", id: "hero" },
+    { label: "Benefits", id: "why" },
+    { label: "Supported Currencies", id: "currencies" },
+    { label: "About", id: "about" },
+    { label: "Donate", id: "support" },
+  ];
 
   return (
     <Box
@@ -91,67 +108,73 @@ const LandingPage: React.FC = () => {
           >
             Penny Logs
           </Box>
-          <Box sx={{ display: "flex", gap: { xs: 2, md: 4 } }}>
-            <a
-              href="#hero"
-              style={{ textDecoration: "none", color: "#333", fontWeight: 500 }}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("hero")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
+          {/* Desktop links */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 4 }}>
+            {navLinks.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                style={{
+                  textDecoration: "none",
+                  color: "#333",
+                  fontWeight: 500,
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById(link.id)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                {link.label}
+              </a>
+            ))}
+          </Box>
+          {/* Mobile hamburger */}
+          <Box sx={{ display: { xs: "block", md: "none" } }}>
+            <IconButton onClick={() => setDrawerOpen(true)}>
+              <MenuIcon size={28} />
+            </IconButton>
+            <Drawer
+              anchor="right"
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
             >
-              Home
-            </a>
-            <a
-              href="#why"
-              style={{ textDecoration: "none", color: "#333", fontWeight: 500 }}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("why")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Benefits
-            </a>
-            <a
-              href="#currencies"
-              style={{ textDecoration: "none", color: "#333", fontWeight: 500 }}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("currencies")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Supported Currencies
-            </a>
-            <a
-              href="#about"
-              style={{ textDecoration: "none", color: "#333", fontWeight: 500 }}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("about")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              About
-            </a>
-            <a
-              href="#support"
-              style={{ textDecoration: "none", color: "#333", fontWeight: 500 }}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("support")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Donate
-            </a>
+              <Box
+                sx={{
+                  width: 320,
+                  p: 3,
+                  pt: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 3,
+                }}
+              >
+                {navLinks.map((link) => (
+                  <a
+                    key={link.id}
+                    href={`#${link.id}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "#333",
+                      fontWeight: 500,
+                      fontSize: 18,
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDrawerOpen(false);
+                      setTimeout(() => {
+                        document
+                          .getElementById(link.id)
+                          ?.scrollIntoView({ behavior: "smooth" });
+                      }, 150);
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </Box>
+            </Drawer>
           </Box>
         </Box>
       )}
