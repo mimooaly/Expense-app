@@ -1,18 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Box, TextField, MenuItem } from "@mui/material";
-import expensesCateg from "../data/ExpenseCategories";
-import { database, auth } from "../firebaseConfig";
-import { ref, onValue } from "firebase/database";
+import React from "react";
+import { Box, TextField, MenuItem, CircularProgress } from "@mui/material";
 import * as FeatherIcons from "react-feather";
-
-interface ExpensesFilterProps {
-  category: string;
-  month: number;
-  year: number;
-  onCategoryChange: (category: string) => void;
-  onMonthChange: (month: number) => void;
-  onYearChange: (year: number) => void;
-}
 
 interface Category {
   id: string;
@@ -21,74 +9,41 @@ interface Category {
   isCustom?: boolean;
 }
 
+interface ExpensesFilterProps {
+  category: string;
+  month: number;
+  year: number;
+  categories: Category[];
+  extraCategoryNames?: string[];
+  onCategoryChange: (category: string) => void;
+  onMonthChange: (month: number) => void;
+  onYearChange: (year: number) => void;
+}
+
 const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
   category,
   month,
   year,
+  categories,
+  extraCategoryNames = [],
   onCategoryChange,
   onMonthChange,
   onYearChange,
 }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Load custom categories and user preferences
-    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
-    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
-
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
-      const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
-        const prefsData = prefsSnapshot.val();
-        const modifiedData = prefsData?.modifiedCategories || {};
-
-        // Convert custom categories to array with prefixed IDs
-        const customCategoriesList = customData
-          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
-              ...value,
-              id: `custom_${id}`,
-              isCustom: true,
-            }))
-          : [];
-
-        // Get modified default categories
-        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
-          (acc, [id, value]: [string, any]) => {
-            acc[id] = value;
-            return acc;
-          },
-          {} as Record<string, any>
-        );
-
-        // Combine with default categories, applying modifications
-        const allCategories = [
-          ...expensesCateg.map((cat) => {
-            const id = cat.id.toString();
-            if (modifiedCategoriesMap[id]) {
-              return {
-                ...cat,
-                ...modifiedCategoriesMap[id],
-                id,
-              };
-            }
-            return {
-              ...cat,
-              id,
-            };
-          }),
-          ...customCategoriesList,
-        ];
-        setCategories(allCategories);
-      });
-
-      return () => unsubscribePrefs();
-    });
-
-    return () => unsubscribeCustom();
-  }, []);
+  if (!categories || categories.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 60,
+        }}
+      >
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
 
   const months = [
     "January",
@@ -151,16 +106,22 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         label="Category"
         value={category}
         size="small"
-        onChange={(e) => onCategoryChange(e.target.value)}
+        onChange={(e) => onCategoryChange(String(e.target.value))}
         sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
         <MenuItem value="">All</MenuItem>
         {categories.map((cat) => (
-          <MenuItem key={cat.id} value={cat.id}>
+          <MenuItem key={cat.id} value={cat.name}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {getCategoryIcon(cat.icon)}
               {cat.name}
             </Box>
+          </MenuItem>
+        ))}
+        {/* Extra category names for backward compatibility */}
+        {extraCategoryNames.map((catName) => (
+          <MenuItem key={catName} value={catName}>
+            {catName}
           </MenuItem>
         ))}
       </TextField>
@@ -187,6 +148,7 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         onChange={(e) => onYearChange(Number(e.target.value))}
         sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
+        <MenuItem value={0}>All</MenuItem>
         {years.map((yearItem) => (
           <MenuItem key={yearItem} value={yearItem}>
             {yearItem}

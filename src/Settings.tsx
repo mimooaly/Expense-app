@@ -21,10 +21,10 @@ import {
   Tooltip,
 } from "@mui/material";
 import theme from "./theme";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Edit2, Trash2, Folder } from "react-feather";
 import * as FeatherIcons from "react-feather";
-import expensesCateg from "./data/ExpenseCategories";
+import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, onValue, push, remove, update, set } from "firebase/database";
 
@@ -37,77 +37,13 @@ interface Category {
 
 const Settings = () => {
   const [defaultCurrency, setDefaultCurrency] = useState("USD");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const categories = useCategories();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
   );
   const [newCategoryName, setNewCategoryName] = useState("");
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Load custom categories and user preferences
-    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
-    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
-
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
-      const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
-        const prefsData = prefsSnapshot.val();
-        const modifiedData = prefsData?.modifiedCategories || {};
-
-        // Convert custom categories to array with prefixed IDs
-        const customCategoriesList = customData
-          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
-              ...value,
-              id: `custom_${id}`,
-              isCustom: true,
-            }))
-          : [];
-
-        // Get modified default categories
-        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
-          (acc, [id, value]: [string, any]) => {
-            acc[id] = value;
-            return acc;
-          },
-          {} as Record<string, any>
-        );
-
-        // Combine with default categories, applying modifications
-        const allCategories = [
-          ...expensesCateg.map((cat) => {
-            const id = cat.id.toString();
-            if (modifiedCategoriesMap[id]) {
-              return {
-                ...cat,
-                ...modifiedCategoriesMap[id],
-                id,
-              };
-            }
-            return {
-              ...cat,
-              id,
-            };
-          }),
-          ...customCategoriesList,
-        ];
-        setCategories(allCategories);
-
-        // Set default currency if available
-        if (prefsData?.defaultCurrency) {
-          setDefaultCurrency(prefsData.defaultCurrency);
-        }
-      });
-
-      return () => unsubscribePrefs();
-    });
-
-    return () => unsubscribeCustom();
-  }, []);
 
   const handleAddCategory = async () => {
     const user = auth.currentUser;

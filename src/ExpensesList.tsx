@@ -41,6 +41,7 @@ import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useCategories } from "./hooks/useCategories";
 
 interface Category {
   id: string;
@@ -420,9 +421,9 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
 export default function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filters, setFilters] = useState({
-    category: 0,
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
+    category: "",
+    month: 0,
+    year: 0,
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -431,6 +432,7 @@ export default function ExpensesList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
+  const categories = useCategories();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -593,15 +595,29 @@ export default function ExpensesList() {
   };
 
   const filteredExpenses = expenses.filter((expense) => {
+    // Category: "" means All
     const matchesCategory =
-      !filters.category || Number(expense.category) === filters.category;
+      !filters.category ||
+      expense.categoryName === filters.category ||
+      expense.category === filters.category;
+
+    // Month: 0 means All
+    const expenseMonth = new Date(expense.date).getMonth() + 1;
     const matchesMonth =
-      !filters.month || new Date(expense.date).getMonth() + 1 === filters.month;
-    const matchesYear =
-      !filters.year || new Date(expense.date).getFullYear() === filters.year;
+      !filters.month || expenseMonth === Number(filters.month);
+
+    // Year: 0 means All
+    const expenseYear = new Date(expense.date).getFullYear();
+    const matchesYear = !filters.year || expenseYear === Number(filters.year);
+
+    // Search (if you want to keep it)
+    const search = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      !searchQuery ||
-      expense.name.toLowerCase().includes(searchQuery.toLowerCase());
+      !search ||
+      expense.name.toLowerCase().includes(search) ||
+      (expense.categoryName &&
+        expense.categoryName.toLowerCase().includes(search));
+
     return matchesCategory && matchesMonth && matchesYear && matchesSearch;
   });
 
@@ -753,11 +769,12 @@ export default function ExpensesList() {
                   }}
                 />
                 <ExpensesFilter
-                  category={filters.category.toString()}
+                  category={filters.category}
                   month={filters.month}
                   year={filters.year}
+                  categories={categories}
                   onCategoryChange={(category) =>
-                    setFilters({ ...filters, category: Number(category) })
+                    setFilters({ ...filters, category })
                   }
                   onMonthChange={(month) => setFilters({ ...filters, month })}
                   onYearChange={(year) => setFilters({ ...filters, year })}
@@ -794,11 +811,12 @@ export default function ExpensesList() {
         >
           {!isMobile && (
             <ExpensesFilter
-              category={filters.category.toString()}
+              category={filters.category}
               month={filters.month}
               year={filters.year}
+              categories={categories}
               onCategoryChange={(category) =>
-                setFilters({ ...filters, category: Number(category) })
+                setFilters({ ...filters, category })
               }
               onMonthChange={(month) => setFilters({ ...filters, month })}
               onYearChange={(year) => setFilters({ ...filters, year })}
