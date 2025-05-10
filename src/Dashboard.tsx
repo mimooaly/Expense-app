@@ -106,7 +106,7 @@ const DashboardPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("3M");
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("MTD");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { preferences } = useUserPreferences();
