@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { database, auth } from "./firebaseConfig"; // Assuming firebaseConfig is accessible
+import { database, auth } from "./firebaseConfig";
 import { ref, onValue } from "firebase/database";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   Container,
   Box,
@@ -14,21 +14,6 @@ import {
   CardContent,
   Skeleton,
   Paper,
-} from "@mui/material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
   Table,
   TableBody,
   TableCell,
@@ -36,15 +21,33 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
+import { Pie, Line } from "react-chartjs-2";
 import {
-  TrendingUp,
-  PieChart as PieChartFeather,
-  Table as TableFeather,
-} from "react-feather";
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip as ChartJSTooltip,
+  Legend as ChartJSLegend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+} from "chart.js";
+import { useUserPreferences } from "./hooks/useUserPreferences";
+import { useCategories } from "./hooks/useCategories";
 import * as FeatherIcons from "react-feather";
-import expensesCateg from "./data/ExpenseCategories";
 
-// Assuming Expense interface is similar to ExpensesList
+ChartJS.register(
+  ArcElement,
+  ChartJSTooltip,
+  ChartJSLegend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title
+);
+
 export interface Expense {
   id: string;
   amount: number;
@@ -53,48 +56,71 @@ export interface Expense {
   name: string;
   date: string; // ISO string date
   monthly: boolean;
-  // ... any other relevant fields
+  isPaused: boolean;
+  nextDate?: string;
 }
 
-type TimePeriod = "1M" | "3M" | "6M" | "YTD";
+type TimePeriod = "3M" | "6M" | "YTD" | "MTD";
 
-// Helper to get start date based on period
 const getStartDateForPeriod = (period: TimePeriod): Date => {
   const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1); // January 1st of current year
-
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
   switch (period) {
-    case "1M":
-      return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     case "3M":
       return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     case "6M":
       return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
     case "YTD":
       return startOfYear;
+    case "MTD":
+      return new Date(now.getFullYear(), now.getMonth(), 1);
     default:
       return now;
   }
 };
 
+// Define a color palette that complements green with yellow accents
+const PIE_COLORS = [
+  "#4CAF50", // primary green
+  "#81C784", // light green
+  "#66BB6A", // medium green
+  "#43A047", // dark green
+  "#2E7D32", // darker green
+  "#1B5E20", // darkest green
+  "#FFC107", // amber yellow
+  "#FFD54F", // light amber
+  "#FFB300", // dark amber
+  "#FFA000", // darker amber
+  "#FF8F00", // darkest amber
+  "#689F38", // olive green
+];
+
+// Add module declarations for firebase/database and firebase/auth if not already present
+// (in a real project, this would go in a separate .d.ts file, but for now, add here for linter silence)
+// @ts-ignore
+declare module "firebase/database";
+// @ts-ignore
+declare module "firebase/auth";
+
 const DashboardPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
-  const [expensesOverTimeData, setExpensesOverTimeData] = useState<
-    { date: string; amount: number }[]
-  >([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("3M");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { preferences } = useUserPreferences();
+  const categories = useCategories();
+
+  // Get current month name for the MTD button
+  const currentMonthName = new Date().toLocaleString(undefined, {
+    month: "long",
+  });
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user: any) => {
       setCurrentUser(user);
-      if (!user) {
-        setAllExpenses([]);
-      }
+      if (!user) setAllExpenses([]);
     });
     return () => unsubscribeAuth();
   }, []);
@@ -103,7 +129,7 @@ const DashboardPage: React.FC = () => {
     if (!currentUser) return;
     setLoading(true);
     const expensesRef = ref(database, `expenses/${currentUser.uid}`);
-    const unsubscribe = onValue(expensesRef, (snapshot) => {
+    const unsubscribe = onValue(expensesRef, (snapshot: any) => {
       const data = snapshot.val();
       if (data) {
         const expensesList = Object.entries(data).map(
@@ -120,114 +146,33 @@ const DashboardPage: React.FC = () => {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Update the data processing for expenses over time
-  useEffect(() => {
-    const startDate = getStartDateForPeriod(timePeriod);
-    const endDate = new Date();
+  // Filter by time period
+  const startDate = getStartDateForPeriod(timePeriod);
+  const endDate = new Date();
+  const filteredExpenses = allExpenses.filter((exp) => {
+    const expenseDate = new Date(exp.date);
+    return expenseDate >= startDate && expenseDate <= endDate;
+  });
 
-    const newFilteredExpenses = allExpenses.filter((exp) => {
-      const expenseDate = new Date(exp.date);
-      return expenseDate >= startDate && expenseDate <= endDate;
-    });
-
-    // Process data based on time period
-    let processedData;
-    if (timePeriod === "1M") {
-      // Group by days for monthly view
-      processedData = newFilteredExpenses.reduce((acc, expense) => {
-        const date = new Date(expense.date);
-        const dayKey = date.toISOString().split("T")[0];
-
-        const existingEntry = acc.find((item) => item.date === dayKey);
-        if (existingEntry) {
-          existingEntry.amount += expense.amount;
-        } else {
-          acc.push({ date: dayKey, amount: expense.amount });
-        }
-        return acc;
-      }, [] as { date: string; amount: number }[]);
-    } else {
-      // Group by months for longer periods
-      processedData = newFilteredExpenses.reduce((acc, expense) => {
-        const date = new Date(expense.date);
-        const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1
-        ).padStart(2, "0")}`;
-
-        const existingEntry = acc.find((item) => item.date === monthKey);
-        if (existingEntry) {
-          existingEntry.amount += expense.amount;
-        } else {
-          acc.push({ date: monthKey, amount: expense.amount });
-        }
-        return acc;
-      }, [] as { date: string; amount: number }[]);
-    }
-
-    // Sort by date
-    processedData.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    setFilteredExpenses(newFilteredExpenses);
-    setExpensesOverTimeData(processedData);
-  }, [allExpenses, timePeriod]);
-
-  // Update the formatXAxisTick function
-  const formatXAxisTick = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (timePeriod === "1M") {
-      // For monthly view, show day and month
-      return date.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-      });
-    } else {
-      // For longer periods, show month and year
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-    }
+  // Get category name from ID
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
   };
 
-  const handleTimePeriodChange = (
-    _: React.MouseEvent<HTMLElement>,
-    newPeriod: TimePeriod | null
-  ) => {
-    if (newPeriod !== null) {
-      setTimePeriod(newPeriod);
+  // Get category icon
+  const getCategoryIcon = (iconName: string) => {
+    if (iconName === "folder") {
+      return (
+        <FeatherIcons.Folder
+          size={20}
+          style={{ marginRight: 8, verticalAlign: "middle" }}
+        />
+      );
     }
-  };
-
-  // --- Data processing for charts ---
-  // Category Spending Data (for Pie/Bar chart and Table)
-  const categorySpendingData = filteredExpenses.reduce((acc, expense) => {
-    const category = expense.categoryName || "Uncategorized";
-    acc[category] = (acc[category] || 0) + expense.amount;
-    return acc;
-  }, {} as { [key: string]: number });
-
-  const pieChartData = Object.entries(categorySpendingData)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value); // Sort for "most spent"
-
-  const categoryTableData = pieChartData; // Already sorted
-
-  const COLORS = [
-    theme.palette.primary.main,
-    theme.palette.secondary.main,
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.error.main,
-    theme.palette.info.main,
-  ];
-
-  // Add category icon mapping function
-  function getCategoryIcon(iconName: string) {
     let featherIconName;
     if (iconName === "github") {
       featherIconName = "GitHub";
@@ -244,7 +189,151 @@ const DashboardPage: React.FC = () => {
         style={{ marginRight: 8, verticalAlign: "middle" }}
       />
     ) : null;
-  }
+  };
+
+  // Expenses Over Time (Line Chart)
+  const expensesOverTimeData = (() => {
+    if (timePeriod === "MTD") {
+      // Group by day
+      const map = new Map<string, number>();
+      filteredExpenses.forEach((exp) => {
+        const dayKey = new Date(exp.date).toISOString().split("T")[0];
+        map.set(dayKey, (map.get(dayKey) || 0) + exp.amount);
+      });
+      // Fill in missing days for the current month if MTD
+      const now = new Date();
+      const daysInMonth = now.getDate();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dayKey = date.toISOString().split("T")[0];
+        if (!map.has(dayKey)) {
+          map.set(dayKey, 0);
+        }
+      }
+      // Sort by date
+      return Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, amount]) => ({ date, amount }));
+    } else {
+      // Group by month
+      const map = new Map<string, number>();
+      filteredExpenses.forEach((exp) => {
+        const date = new Date(exp.date);
+        const monthKey = `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+        map.set(monthKey, (map.get(monthKey) || 0) + exp.amount);
+      });
+      return Array.from(map.entries()).map(([date, amount]) => ({
+        date,
+        amount,
+      }));
+    }
+  })();
+
+  // Pie chart for spending per category (aggregate by category name)
+  const categorySpendingData = filteredExpenses.reduce((acc, expense) => {
+    // Always use category name for aggregation
+    let categoryName = "Uncategorized";
+    if (expense.category) {
+      const category = categories.find((cat) => cat.id === expense.category);
+      categoryName = category
+        ? category.name
+        : expense.categoryName || "Uncategorized";
+    } else if (expense.categoryName) {
+      categoryName = expense.categoryName;
+    }
+    acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
+    return acc;
+  }, {} as { [key: string]: number });
+
+  // Table for all category spendings
+  const categoryTableData = Object.entries(categorySpendingData)
+    .map(([name, value]) => {
+      const category = categories.find((cat) => cat.name === name);
+      return {
+        name,
+        icon: category ? category.icon : "box",
+        value: Number(value),
+      };
+    })
+    .sort((a, b) => b.value - a.value);
+
+  // Pie chart data for spending per category
+  const pieChartDataJS = {
+    labels: categoryTableData.map((row) => row.name),
+    datasets: [
+      {
+        data: categoryTableData.map((row) => row.value),
+        backgroundColor: PIE_COLORS,
+      },
+    ],
+  };
+
+  // Chart.js options
+  const pieOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "bottom" as const },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            const value = context.parsed;
+            return `${value.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} ${preferences.defaultCurrency}`;
+          },
+        },
+      },
+    },
+  };
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `${context.parsed.y.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            })} ${preferences.defaultCurrency}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: timePeriod === "MTD" ? currentMonthName : "Date",
+        },
+        ticks: {
+          callback: function (val: any, idx: number) {
+            const date = expensesOverTimeData[idx]?.date;
+            if (timePeriod === "MTD" && date) {
+              // Show day of month (1, 2, 3, ...)
+              return new Date(date).getDate();
+            }
+            return date || val;
+          },
+        },
+      },
+      y: {
+        title: { display: true, text: preferences.defaultCurrency },
+        ticks: {
+          callback: function (val: any) {
+            return Intl.NumberFormat(undefined, {
+              notation: "compact",
+              maximumFractionDigits: 2,
+            }).format(Number(val));
+          },
+        },
+      },
+    },
+  };
 
   if (!currentUser) {
     return (
@@ -266,12 +355,11 @@ const DashboardPage: React.FC = () => {
           Track and analyze your spending patterns
         </Typography>
       </Box>
-
       <Box sx={{ mb: 4, display: "flex", justifyContent: "center" }}>
         <ToggleButtonGroup
           value={timePeriod}
           exclusive
-          onChange={handleTimePeriodChange}
+          onChange={(_e, newPeriod) => newPeriod && setTimePeriod(newPeriod)}
           aria-label="time period"
           size={isMobile ? "small" : "medium"}
           sx={{
@@ -298,310 +386,183 @@ const DashboardPage: React.FC = () => {
             },
           }}
         >
-          <ToggleButton value="1M">1M</ToggleButton>
+          <ToggleButton value="MTD">{currentMonthName}</ToggleButton>
           <ToggleButton value="3M">3M</ToggleButton>
           <ToggleButton value="6M">6M</ToggleButton>
           <ToggleButton value="YTD">YTD</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Expenses Over Time Chart */}
-        <Box sx={{ width: "100%" }}>
-          <Card
-            elevation={0}
-            sx={{
-              borderRadius: 1,
-              border: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <TrendingUp
-                  size={24}
-                  style={{ marginRight: 8, color: theme.palette.primary.main }}
-                />
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                  Expenses Over Time
-                </Typography>
-              </Box>
-              {loading ? (
-                <Skeleton variant="rectangular" height={350} />
-              ) : expensesOverTimeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={expensesOverTimeData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke={theme.palette.divider}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      stroke={theme.palette.text.secondary}
-                      tick={{ fill: theme.palette.text.secondary }}
-                      tickFormatter={formatXAxisTick}
-                      interval={timePeriod === "1M" ? 0 : "preserveStartEnd"}
-                    />
-                    <YAxis
-                      stroke={theme.palette.text.secondary}
-                      tick={{ fill: theme.palette.text.secondary }}
-                      tickFormatter={(value) =>
-                        `$${value.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      }
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: theme.palette.background.paper,
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 8,
-                      }}
-                      formatter={(value: number) => [
-                        <span style={{ color: "#8b0000" }}>
-                          $
-                          {value.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>,
-                      ]}
-                      labelFormatter={(dateStr) => {
-                        const date = new Date(dateStr);
-                        return date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        });
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="amount"
-                      stroke={theme.palette.primary.main}
-                      strokeWidth={2}
-                      activeDot={{ r: 8 }}
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
-                  No data for this period.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Box>
+      {/* Expenses Over Time Line Chart - Full Width */}
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: 1,
+          border: `1px solid ${theme.palette.divider}`,
+          mb: 3,
+          width: "100%",
+        }}
+      >
+        <CardContent sx={{ width: "100%", p: 3 }}>
+          <Typography variant="body1" sx={{ fontWeight: "bold", mb: 2 }}>
+            Expenses Over Time
+          </Typography>
+          {loading ? (
+            <Skeleton variant="rectangular" height={350} />
+          ) : expensesOverTimeData.length > 0 ? (
+            <Box sx={{ width: "100%", height: 350 }}>
+              <Line
+                data={{
+                  labels: expensesOverTimeData.map((d) => d.date),
+                  datasets: [
+                    {
+                      label: `Expenses (${preferences.defaultCurrency})`,
+                      data: expensesOverTimeData.map((d) => d.amount),
+                      fill: true,
+                      backgroundColor: "rgba(76, 175, 80, 0.1)", // light green with opacity
+                      borderColor: theme.palette.primary.main,
+                      tension: 0.3,
+                      pointBackgroundColor: theme.palette.primary.main,
+                      pointBorderColor: "#fff",
+                      pointHoverBackgroundColor: "#fff",
+                      pointHoverBorderColor: theme.palette.primary.main,
+                    },
+                  ],
+                }}
+                options={{
+                  ...lineOptions,
+                  maintainAspectRatio: false,
+                  responsive: true,
+                }}
+              />
+            </Box>
+          ) : (
+            <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
+              No data for this period.
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Charts and Table Row */}
-        <Box
+      {/* Pie Chart and Table - Side by Side on large screens */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          gap: 3,
+          mb: 3,
+        }}
+      >
+        <Card
+          elevation={0}
           sx={{
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            flex: 1,
             display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: 3,
-            "& > *": { flex: 1 },
+            flexDirection: "column",
           }}
         >
-          {/* Most Spent Categories Pie Chart */}
-          <Card
-            elevation={0}
+          <CardContent
             sx={{
-              borderRadius: 1,
-              border: `1px solid ${theme.palette.divider}`,
-              height: "100%",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <PieChartFeather
-                  size={24}
-                  style={{
-                    marginRight: 8,
-                    color: theme.palette.secondary.main,
-                  }}
-                />
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                  Top Categories
-                </Typography>
+            <Typography
+              variant="body1"
+              sx={{ fontWeight: "bold", mb: 2, alignSelf: "flex-start" }}
+            >
+              Spending by Category
+            </Typography>
+            {loading ? (
+              <Skeleton variant="rectangular" height={400} />
+            ) : categoryTableData.length > 0 ? (
+              <Box
+                sx={{
+                  position: "relative",
+                  height: 400,
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Pie data={pieChartDataJS} options={pieOptions} />
               </Box>
-              {loading ? (
-                <Skeleton variant="rectangular" height={400} />
-              ) : pieChartData.length > 0 ? (
-                <Box sx={{ position: "relative", height: 400 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieChartData.slice(0, 10)}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={80}
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                        paddingAngle={2}
-                      >
-                        {pieChartData.slice(0, 10).map((_, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: theme.palette.background.paper,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 8,
-                          padding: "8px 12px",
-                          fontSize: "0.75rem",
-                        }}
-                        formatter={(value: number, name: string) => [
-                          <span style={{ color: "#8b0000" }}>
-                            $
-                            {value.toLocaleString(undefined, {
+            ) : (
+              <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
+                No data for this period.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            flex: 1,
+          }}
+        >
+          <CardContent>
+            <Typography variant="body1" sx={{ fontWeight: "bold", mb: 2 }}>
+              Category Spending Table
+            </Typography>
+            {loading ? (
+              <Skeleton variant="rectangular" height={200} />
+            ) : categoryTableData.length > 0 ? (
+              <Paper elevation={0}>
+                <TableContainer className="no-shadow">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          Category
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                          Total Amount
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {categoryTableData.map((row) => (
+                        <TableRow key={row.name} hover>
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              {getCategoryIcon(row.icon)}
+                              {row.name}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            {row.value.toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
-                            })}
-                          </span>,
-                          name,
-                        ]}
-                        itemStyle={{
-                          padding: "2px 0",
-                        }}
-                      />
-                      <Legend
-                        layout="horizontal"
-                        verticalAlign="bottom"
-                        align="center"
-                        formatter={(value, _: any) => (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: theme.palette.text.secondary,
-                              fontSize: "0.75rem",
-                            }}
-                          >
-                            {value}
-                          </Typography>
-                        )}
-                        wrapperStyle={{
-                          paddingTop: "10px",
-                          fontSize: "0.75rem",
-                        }}
-                        iconSize={10}
-                        iconType="circle"
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <Box className="total-amount-display-wrapper-pie">
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: "bold",
-                        color: theme.palette.primary.main,
-                      }}
-                    >
-                      $
-                      {pieChartData
-                        .reduce((sum, item) => sum + item.value, 0)
-                        .toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                    </Typography>
-                  </Box>
-                </Box>
-              ) : (
-                <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
-                  No data for this period.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Category Spending Table */}
-          <Card
-            elevation={0}
-            sx={{
-              borderRadius: 1,
-              border: `1px solid ${theme.palette.divider}`,
-              height: "100%",
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <TableFeather
-                  size={24}
-                  style={{ marginRight: 8, color: theme.palette.success.main }}
-                />
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                  Spending by Category
-                </Typography>
-              </Box>
-              {loading ? (
-                <Skeleton variant="rectangular" height={300} />
-              ) : categoryTableData.length > 0 ? (
-                <Paper elevation={0}>
-                  <TableContainer className="no-shadow">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: "bold" }}>
-                            Category
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                            Total Amount
+                            })}{" "}
+                            {preferences.defaultCurrency}
                           </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {categoryTableData.map((row) => (
-                          <TableRow
-                            key={row.name}
-                            hover
-                            sx={{
-                              "&:last-child td, &:last-child th": { border: 0 },
-                            }}
-                          >
-                            <TableCell>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                {getCategoryIcon(
-                                  expensesCateg.find(
-                                    (cat) => cat.name === row.name
-                                  )?.icon || ""
-                                )}
-                                {row.name}
-                              </Box>
-                            </TableCell>
-                            <TableCell align="right">
-                              $
-                              {row.value.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Paper>
-              ) : (
-                <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
-                  No data for this period.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Box>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            ) : (
+              <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
+                No data for this period.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
       </Box>
     </Container>
   );
