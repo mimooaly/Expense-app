@@ -50,7 +50,7 @@ const Header: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
       setUser(user);
     });
     return () => unsubscribe();
@@ -86,7 +86,8 @@ const Header: React.FC = () => {
   if (
     location.pathname === "/" ||
     location.pathname === "/login" ||
-    location.pathname === "/register"
+    location.pathname === "/register" ||
+    location.pathname === "/support"
   ) {
     return null;
   }

@@ -125,10 +125,17 @@ const Support: React.FC = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              Currently, Penny Logs supports USD (US Dollar), EGP (Egyptian
-              Pound), and PHP (Philippine Peso). The default currency is USD,
-              but you can change it in your settings. We are actively working on
-              expanding support to more cash-centric countries in the future.
+              Penny Logs supports 16 currencies: USD (US Dollar), PHP
+              (Philippine Peso), EGP (Egyptian Pound), INR (Indian Rupee), CNY
+              (Chinese Yuan), JPY (Japanese Yen), IDR (Indonesian Rupiah), NGN
+              (Nigerian Naira), KES (Kenyan Shilling), VND (Vietnamese Dong),
+              KHR (Cambodian Riel), PKR (Pakistani Rupee), BDT (Bangladeshi
+              Taka), MXN (Mexican Peso), COP (Colombian Peso), and PEN (Peruvian
+              Sol).
+              <br />
+              <br />
+              You can set any of these as your default currency in your
+              settings.
             </Typography>
           </AccordionDetails>
         </Accordion>
