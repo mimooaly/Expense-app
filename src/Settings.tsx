@@ -162,8 +162,8 @@ const Settings = () => {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mb: 4 }}>
+    <Container maxWidth="md" className="page-glossy-background" sx={{ mt: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom>
           Settings
         </Typography>
