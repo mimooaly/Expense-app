@@ -233,6 +233,14 @@ body {
   transform: translate(-50%, -50%);
   text-align: center;
 }
+
+.empty-images{
+  text-align: center;
+  margin-top: 4px;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
 /* MUI default breakpoint for 'sm' is 600px. 
    This will apply to screens smaller than that. */
 @media (max-width: 599.95px) { 
