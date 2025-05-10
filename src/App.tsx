@@ -8,6 +8,7 @@ import ExpensesList from "./ExpensesList";
 import LandingPage from "./LandingPage";
 import Support from "./Support";
 import Header from "./components/Header";
+import Settings from "./Settings";
 
 const theme = createTheme({
   palette: {
@@ -36,6 +37,7 @@ function App() {
           <Route path="/support" element={<Support />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/expenses" element={<ExpensesList />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Router>
     </ThemeProvider>

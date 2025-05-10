@@ -10,6 +10,7 @@ import {
   MenuItem,
   Checkbox,
   FormControlLabel,
+  Typography,
 } from "@mui/material";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -17,6 +18,8 @@ import { Expense } from "../ExpensesList";
 import expensesCateg from "../data/ExpenseCategories";
 import * as FeatherIcons from "react-feather";
 import CircularProgress from "@mui/material/CircularProgress";
+import { database, auth } from "../firebaseConfig";
+import { ref, onValue } from "firebase/database";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -24,6 +27,13 @@ interface AddExpenseDialogProps {
   initialValues?: Expense | null;
   isEdit?: boolean;
   onSave?: (values: any) => Promise<void>;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  isCustom?: boolean;
 }
 
 const currencyOptions = [
@@ -43,6 +53,66 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   const [currency, setCurrency] = useState("USD");
   const [usdAmount, setUsdAmount] = useState<number | null>(null);
   const [converting, setConverting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Load custom categories and user preferences
+    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
+    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
+
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+      const customData = snapshot.val();
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+        const prefsData = prefsSnapshot.val();
+        const modifiedData = prefsData?.modifiedCategories || {};
+
+        // Convert custom categories to array with prefixed IDs
+        const customCategoriesList = customData
+          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
+              ...value,
+              id: `custom_${id}`,
+              isCustom: true,
+            }))
+          : [];
+
+        // Get modified default categories
+        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
+          (acc, [id, value]: [string, any]) => {
+            acc[id] = value;
+            return acc;
+          },
+          {} as Record<string, any>
+        );
+
+        // Combine with default categories, applying modifications
+        const allCategories = [
+          ...expensesCateg.map((cat) => {
+            const id = cat.id.toString();
+            if (modifiedCategoriesMap[id]) {
+              return {
+                ...cat,
+                ...modifiedCategoriesMap[id],
+                id,
+              };
+            }
+            return {
+              ...cat,
+              id,
+            };
+          }),
+          ...customCategoriesList,
+        ];
+        setCategories(allCategories);
+      });
+
+      return () => unsubscribePrefs();
+    });
+
+    return () => unsubscribeCustom();
+  }, []);
 
   const formik = useFormik({
     initialValues: initialValues || {
@@ -127,6 +197,33 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     }
   }, [initialValues]);
 
+  const getCategoryIcon = (iconName: string) => {
+    if (iconName === "folder") {
+      return (
+        <FeatherIcons.Folder
+          size={18}
+          style={{ marginRight: 8, verticalAlign: "middle" }}
+        />
+      );
+    }
+    let featherIconName;
+    if (iconName === "github") {
+      featherIconName = "GitHub";
+    } else {
+      featherIconName = iconName
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+    }
+    const IconComponent = (FeatherIcons as any)[featherIconName];
+    return IconComponent ? (
+      <IconComponent
+        size={18}
+        style={{ marginRight: 8, verticalAlign: "middle" }}
+      />
+    ) : null;
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{isEdit ? "Edit Expense" : "Add New Expense"}</DialogTitle>
@@ -158,29 +255,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             helperText={formik.touched.category && formik.errors.category}
           >
             <MenuItem value="">Select Category</MenuItem>
-            {expensesCateg.map((cat) => {
-              let iconName;
-              if (cat.icon === "github") {
-                iconName = "GitHub";
-              } else {
-                iconName = cat.icon
-                  .split("-")
-                  .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-                  .join("");
-              }
-              const IconComponent = (FeatherIcons as any)[iconName];
-              return (
-                <MenuItem key={cat.id} value={cat.id}>
-                  {IconComponent && (
-                    <IconComponent
-                      size={18}
-                      style={{ marginRight: 8, verticalAlign: "middle" }}
-                    />
-                  )}
-                  {cat.name}
-                </MenuItem>
-              );
-            })}
+            {categories.map((cat) => (
+              <MenuItem key={cat.id} value={cat.id}>
+                {getCategoryIcon(cat.icon)}
+                {cat.name}
+              </MenuItem>
+            ))}
           </TextField>
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 2 }}>
             <TextField
@@ -265,26 +345,29 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 onChange={formik.handleChange}
               />
             }
-            label="Monthly"
+            label="Recurring Expense"
           />
           {error && (
-            <Box color="error.main" sx={{ mt: 1 }}>
+            <Typography color="error" sx={{ mt: 2 }}>
               {error}
-            </Box>
+            </Typography>
           )}
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="secondary">
-          Cancel
-        </Button>
+        <Button onClick={onClose}>Cancel</Button>
         <Button
-          type="submit"
-          variant="contained"
-          color="primary"
           onClick={() => formik.handleSubmit()}
+          variant="contained"
+          disabled={converting}
         >
-          {isEdit ? "Save" : "Add"}
+          {converting ? (
+            <CircularProgress size={24} />
+          ) : isEdit ? (
+            "Save"
+          ) : (
+            "Add"
+          )}
         </Button>
       </DialogActions>
     </Dialog>

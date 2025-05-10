@@ -17,7 +17,7 @@ import {
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { auth } from "../firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { List, BarChart2 } from "react-feather";
+import { List, BarChart2, Settings } from "react-feather";
 
 interface NavLinkProps {
   active?: boolean;
@@ -154,6 +154,13 @@ const Header: React.FC = () => {
                 <List size={20} />
                 <span>Expenses</span>
               </NavLink>
+              <NavLink
+                to="/settings"
+                active={location.pathname === "/settings"}
+              >
+                <Settings size={20} />
+                <span>Settings</span>
+              </NavLink>
             </Box>
           )}
           {user && (
@@ -226,6 +233,14 @@ const Header: React.FC = () => {
                   active={location.pathname === "/expenses"}
                 >
                   <List size={20} />
+                </NavLink>
+              </Tooltip>
+              <Tooltip title="Settings" placement="top">
+                <NavLink
+                  to="/settings"
+                  active={location.pathname === "/settings"}
+                >
+                  <Settings size={20} />
                 </NavLink>
               </Tooltip>
             </Box>

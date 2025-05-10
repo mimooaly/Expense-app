@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { database, auth } from "./firebaseConfig";
-import { ref, onValue, push, remove, update } from "firebase/database";
+import { ref, onValue, push, remove, update, get } from "firebase/database";
 import "./App.css";
 import emptyImage from "./assets/empty.png";
 import {
@@ -41,6 +41,13 @@ import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  isCustom?: boolean;
+}
 
 export interface Expense {
   id: string;
@@ -105,6 +112,66 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
 }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<keyof Expense>("date");
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Load custom categories and user preferences
+    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
+    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
+
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+      const customData = snapshot.val();
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+        const prefsData = prefsSnapshot.val();
+        const modifiedData = prefsData?.modifiedCategories || {};
+
+        // Convert custom categories to array with prefixed IDs
+        const customCategoriesList = customData
+          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
+              ...value,
+              id: `custom_${id}`,
+              isCustom: true,
+            }))
+          : [];
+
+        // Get modified default categories
+        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
+          (acc, [id, value]: [string, any]) => {
+            acc[id] = value;
+            return acc;
+          },
+          {} as Record<string, any>
+        );
+
+        // Combine with default categories, applying modifications
+        const allCategories = [
+          ...expensesCateg.map((cat) => {
+            const id = cat.id.toString();
+            if (modifiedCategoriesMap[id]) {
+              return {
+                ...cat,
+                ...modifiedCategoriesMap[id],
+                id,
+              };
+            }
+            return {
+              ...cat,
+              id,
+            };
+          }),
+          ...customCategoriesList,
+        ];
+        setCategories(allCategories);
+      });
+
+      return () => unsubscribePrefs();
+    });
+
+    return () => unsubscribeCustom();
+  }, []);
 
   const handleRequestSort = (property: keyof Expense) => {
     const isAsc = orderBy === property && order === "asc";
@@ -113,6 +180,37 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   };
 
   const sortedExpenses = stableSort(expenses, getComparator(order, orderBy));
+
+  const getCategoryIcon = (categoryName: string) => {
+    const category = categories.find((cat) => cat.name === categoryName);
+    if (!category) return null;
+
+    if (category.icon === "folder") {
+      return (
+        <FeatherIcons.Folder
+          size={20}
+          style={{ marginRight: 8, verticalAlign: "middle" }}
+        />
+      );
+    }
+
+    let featherIconName;
+    if (category.icon === "github") {
+      featherIconName = "GitHub";
+    } else {
+      featherIconName = category.icon
+        .split("-")
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+    }
+    const IconComponent = (FeatherIcons as any)[featherIconName];
+    return IconComponent ? (
+      <IconComponent
+        size={20}
+        style={{ marginRight: 8, verticalAlign: "middle" }}
+      />
+    ) : null;
+  };
 
   return (
     <TableContainer component={Paper}>
@@ -151,12 +249,7 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
             >
               <TableCell>
                 <Box display="flex" alignItems="center">
-                  {getCategoryIcon(
-                    expensesCateg.find(
-                      (cat: { id: number; name: string; icon: string }) =>
-                        cat.name === expense.categoryName
-                    )?.icon || ""
-                  )}
+                  {getCategoryIcon(expense.categoryName)}
                   <span style={{ marginLeft: 8 }}>{expense.categoryName}</span>
                 </Box>
               </TableCell>
@@ -182,77 +275,147 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   );
 };
 
-function getCategoryIcon(iconName: string) {
-  let featherIconName;
-  if (iconName === "github") {
-    featherIconName = "GitHub";
-  } else {
-    featherIconName = iconName
-      .split("-")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join("");
-  }
-  const IconComponent = (FeatherIcons as any)[featherIconName];
-  return IconComponent ? (
-    <IconComponent
-      size={20}
-      style={{ marginRight: 8, verticalAlign: "middle" }}
-    />
-  ) : null;
-}
-
 const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   expenses,
   onDelete,
   onEdit,
-}) => (
-  <List className="expenses-list-mobile">
-    {expenses.map((expense) => (
-      <ListItem key={expense.id} divider className="expense-list-item-mobile">
-        <ListItemText
-          primary={
-            <div className="expense-list-item-mobile-primary">
-              <Box display="flex" alignItems="center">
-                {getCategoryIcon(
-                  expensesCateg.find(
-                    (cat: { id: number; name: string; icon: string }) =>
-                      cat.name === expense.categoryName
-                  )?.icon || ""
-                )}
-                <span className="expense-list-item-mobile-name">
-                  {expense.name}
-                </span>
-              </Box>
-            </div>
-          }
-          secondary={
-            <>
-              <span className="expense-list-item-mobile-amount">
-                $
-                {expense.amount.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-              <span className="expense-list-item-mobile-secondary">
-                {expense.categoryName} •{" "}
-                {new Date(expense.date).toLocaleDateString()}
-              </span>
-            </>
-          }
+}) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Load custom categories and user preferences
+    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
+    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
+
+    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot) => {
+      const customData = snapshot.val();
+      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot) => {
+        const prefsData = prefsSnapshot.val();
+        const modifiedData = prefsData?.modifiedCategories || {};
+
+        // Convert custom categories to array with prefixed IDs
+        const customCategoriesList = customData
+          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
+              ...value,
+              id: `custom_${id}`,
+              isCustom: true,
+            }))
+          : [];
+
+        // Get modified default categories
+        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
+          (acc, [id, value]: [string, any]) => {
+            acc[id] = value;
+            return acc;
+          },
+          {} as Record<string, any>
+        );
+
+        // Combine with default categories, applying modifications
+        const allCategories = [
+          ...expensesCateg.map((cat) => {
+            const id = cat.id.toString();
+            if (modifiedCategoriesMap[id]) {
+              return {
+                ...cat,
+                ...modifiedCategoriesMap[id],
+                id,
+              };
+            }
+            return {
+              ...cat,
+              id,
+            };
+          }),
+          ...customCategoriesList,
+        ];
+        setCategories(allCategories);
+      });
+
+      return () => unsubscribePrefs();
+    });
+
+    return () => unsubscribeCustom();
+  }, []);
+
+  const getCategoryIcon = (categoryName: string) => {
+    const category = categories.find((cat) => cat.name === categoryName);
+    if (!category) return null;
+
+    if (category.icon === "folder") {
+      return (
+        <FeatherIcons.Folder
+          size={18}
+          style={{ marginRight: 8, verticalAlign: "middle" }}
         />
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <IconButton edge="end" onClick={() => onEdit(expense)}>
-            <Edit2 size={16} />
-          </IconButton>
-          <IconButton edge="end" onClick={() => onDelete(expense.id)}>
-            <Trash2 size={16} />
-          </IconButton>
-        </Box>
-      </ListItem>
-    ))}
-  </List>
-);
+      );
+    }
+
+    let featherIconName;
+    if (category.icon === "github") {
+      featherIconName = "GitHub";
+    } else {
+      featherIconName = category.icon
+        .split("-")
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+    }
+    const IconComponent = (FeatherIcons as any)[featherIconName];
+    return IconComponent ? (
+      <IconComponent
+        size={18}
+        style={{ marginRight: 8, verticalAlign: "middle" }}
+      />
+    ) : null;
+  };
+
+  return (
+    <List className="expenses-list-mobile">
+      {expenses.map((expense) => (
+        <ListItem key={expense.id} divider className="expense-list-item-mobile">
+          <ListItemText
+            primary={
+              <div className="expense-list-item-mobile-primary">
+                <Box display="flex" alignItems="center">
+                  {getCategoryIcon(expense.categoryName)}
+                  <span className="expense-list-item-mobile-name">
+                    {expense.name}
+                  </span>
+                </Box>
+              </div>
+            }
+            secondary={
+              <>
+                <span className="expense-list-item-mobile-amount">
+                  $
+                  {expense.amount.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="expense-list-item-mobile-secondary">
+                  {expense.categoryName} •{" "}
+                  {new Date(expense.date).toLocaleDateString()}
+                </span>
+              </>
+            }
+          />
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <IconButton edge="end" onClick={() => onEdit(expense)}>
+              <Edit2 size={16} />
+            </IconButton>
+            <IconButton edge="end" onClick={() => onDelete(expense.id)}>
+              <Trash2 size={16} />
+            </IconButton>
+          </Box>
+        </ListItem>
+      ))}
+    </List>
+  );
+};
 
 export default function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -337,13 +500,31 @@ export default function ExpensesList() {
     }
 
     try {
+      // Get category name based on whether it's a custom or default category
+      let categoryName = "";
+      if (values.category.startsWith("custom_")) {
+        // For custom categories, get the name from the customCategories node
+        const customCategoryRef = ref(
+          database,
+          `customCategories/${user.uid}/${values.category.replace(
+            "custom_",
+            ""
+          )}`
+        );
+        const snapshot = await get(customCategoryRef);
+        if (snapshot.exists()) {
+          categoryName = snapshot.val().name;
+        }
+      } else {
+        // For default categories, get the name from expensesCateg
+        categoryName =
+          expensesCateg.find((cat) => cat.id === parseInt(values.category))
+            ?.name || "";
+      }
+
       await push(ref(database, `expenses/${user.uid}`), {
         ...values,
-        categoryName:
-          expensesCateg.find(
-            (cat: { id: number; name: string; icon: string }) =>
-              cat.id === parseInt(values.category)
-          )?.name || "",
+        categoryName,
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -572,11 +753,11 @@ export default function ExpensesList() {
                   }}
                 />
                 <ExpensesFilter
-                  category={filters.category}
+                  category={filters.category.toString()}
                   month={filters.month}
                   year={filters.year}
                   onCategoryChange={(category) =>
-                    setFilters({ ...filters, category })
+                    setFilters({ ...filters, category: Number(category) })
                   }
                   onMonthChange={(month) => setFilters({ ...filters, month })}
                   onYearChange={(year) => setFilters({ ...filters, year })}
@@ -613,11 +794,11 @@ export default function ExpensesList() {
         >
           {!isMobile && (
             <ExpensesFilter
-              category={filters.category}
+              category={filters.category.toString()}
               month={filters.month}
               year={filters.year}
               onCategoryChange={(category) =>
-                setFilters({ ...filters, category })
+                setFilters({ ...filters, category: Number(category) })
               }
               onMonthChange={(month) => setFilters({ ...filters, month })}
               onYearChange={(year) => setFilters({ ...filters, year })}
