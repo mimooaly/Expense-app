@@ -18,9 +18,9 @@ import {
   DollarSign,
   ArrowRight,
 } from "react-feather";
-import dashboardImage from "./assets/dashboard.png";
 import expensesImage from "./assets/expenses.png";
 import iconImage from "./assets/icon.png";
+import appVideo from "./assets/app.mp4";
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -78,7 +78,7 @@ const LandingPage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
       setUser(user);
     });
     return () => unsubscribe();
@@ -286,9 +286,6 @@ const LandingPage: React.FC = () => {
             </Box>
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
               <Box
-                component="img"
-                src={dashboardImage}
-                alt="Dashboard Preview"
                 sx={{
                   width: "100%",
                   maxWidth: 350,
@@ -297,13 +294,20 @@ const LandingPage: React.FC = () => {
                   margin: "0 auto",
                   borderRadius: 0.5,
                   boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
-                  transform: "perspective(1000px) rotateY(-5deg)",
-                  transition: "transform 0.3s ease-in-out",
-                  "&:hover": {
-                    transform: "perspective(1000px) rotateY(0deg)",
-                  },
+                  overflow: "hidden",
                 }}
-              />
+              >
+                <video
+                  src={appVideo}
+                  style={{ width: "100%", height: "auto", display: "block" }}
+                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  poster={iconImage}
+                />
+              </Box>
             </Box>
           </Box>
         </Container>

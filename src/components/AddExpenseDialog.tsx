@@ -15,13 +15,11 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Expense } from "../ExpensesList";
-import expensesCateg from "../data/ExpenseCategories";
 import * as FeatherIcons from "react-feather";
 import CircularProgress from "@mui/material/CircularProgress";
-import { database, auth } from "../firebaseConfig";
-import { ref, onValue } from "firebase/database";
 import { useCategories } from "../hooks/useCategories";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import { currencyOptions } from "../data/currencyOptions";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -30,32 +28,6 @@ interface AddExpenseDialogProps {
   isEdit?: boolean;
   onSave?: (values: any) => Promise<void>;
 }
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  isCustom?: boolean;
-}
-
-const currencyOptions = [
-  { code: "USD", label: "USD" },
-  { code: "PHP", label: "PHP" },
-  { code: "EGP", label: "EGP" },
-  { code: "INR", label: "INR (India)" },
-  { code: "CNY", label: "CNY (China)" },
-  { code: "JPY", label: "JPY (Japan)" },
-  { code: "IDR", label: "IDR (Indonesia)" },
-  { code: "NGN", label: "NGN (Nigeria)" },
-  { code: "KES", label: "KES (Kenya)" },
-  { code: "VND", label: "VND (Vietnam)" },
-  { code: "KHR", label: "KHR (Cambodia)" },
-  { code: "PKR", label: "PKR (Pakistan)" },
-  { code: "BDT", label: "BDT (Bangladesh)" },
-  { code: "MXN", label: "MXN (Mexico)" },
-  { code: "COP", label: "COP (Colombia)" },
-  { code: "PEN", label: "PEN (Peru)" },
-];
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   open,

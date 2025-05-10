@@ -29,6 +29,7 @@ import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, push, remove, update, set } from "firebase/database";
 import { useUserPreferences } from "./hooks/useUserPreferences";
+import { currencyOptions } from "./data/currencyOptions";
 
 interface Category {
   id: string;
@@ -36,25 +37,6 @@ interface Category {
   icon: string;
   isCustom?: boolean;
 }
-
-const currencyOptions = [
-  { code: "USD", label: "USD (United States Dollar)" },
-  { code: "PHP", label: "PHP (Philippine Peso)" },
-  { code: "EGP", label: "EGP (Egyptian Pound)" },
-  { code: "INR", label: "INR (Indian Rupee)" },
-  { code: "CNY", label: "CNY (Chinese Yuan)" },
-  { code: "JPY", label: "JPY (Japanese Yen)" },
-  { code: "IDR", label: "IDR (Indonesia)" },
-  { code: "NGN", label: "NGN (Nigeria)" },
-  { code: "KES", label: "KES (Kenya)" },
-  { code: "VND", label: "VND (Vietnam)" },
-  { code: "KHR", label: "KHR (Cambodia)" },
-  { code: "PKR", label: "PKR (Pakistan)" },
-  { code: "BDT", label: "BDT (Bangladesh)" },
-  { code: "MXN", label: "MXN (Mexico)" },
-  { code: "COP", label: "COP (Colombia)" },
-  { code: "PEN", label: "PEN (Peru)" },
-];
 
 const Settings = () => {
   const categories = useCategories();
