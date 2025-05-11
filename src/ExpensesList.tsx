@@ -46,13 +46,6 @@ import { useCategories } from "./hooks/useCategories";
 import RecurringExpensesDialog from "./components/RecurringExpensesDialog";
 import { useUserPreferences } from "./hooks/useUserPreferences";
 
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  isCustom?: boolean;
-}
-
 export interface Expense {
   id: string;
   amount: number;
