@@ -27,7 +27,6 @@ import {
   Menu as MenuIcon,
   Home,
   Info,
-  Heart,
   User,
 } from "react-feather";
 import Slider from "react-slick";
