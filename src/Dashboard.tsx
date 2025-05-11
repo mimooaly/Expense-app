@@ -20,6 +20,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  IconButton,
 } from "@mui/material";
 import { Pie, Line } from "react-chartjs-2";
 import {
@@ -111,6 +112,8 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { preferences } = useUserPreferences();
   const categories = useCategories();
+  const [lineChartKey, setLineChartKey] = useState(0);
+  const [pieChartKey, setPieChartKey] = useState(0);
 
   // Get current month name for the MTD button
   const currentMonthName = new Date().toLocaleString(undefined, {
@@ -391,6 +394,14 @@ const DashboardPage: React.FC = () => {
     },
   };
 
+  const handleLineChartRefresh = () => {
+    setLineChartKey((prev) => prev + 1);
+  };
+
+  const handlePieChartRefresh = () => {
+    setPieChartKey((prev) => prev + 1);
+  };
+
   if (!currentUser) {
     return (
       <Container
@@ -469,17 +480,38 @@ const DashboardPage: React.FC = () => {
           border: `1px solid ${theme.palette.divider}`,
           mb: 3,
           width: "100%",
+          position: "relative",
         }}
       >
         <CardContent sx={{ width: "100%", p: 3 }}>
-          <Typography variant="body1" sx={{ fontWeight: "bold", mb: 2 }}>
-            Expenses Over Time
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+              Expenses Over Time
+            </Typography>
+            <IconButton
+              onClick={handleLineChartRefresh}
+              size="small"
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "primary.main" },
+              }}
+            >
+              <FeatherIcons.RefreshCw size={16} />
+            </IconButton>
+          </Box>
           {loading ? (
             <Skeleton variant="rectangular" height={350} />
           ) : expensesOverTimeData.dates.length > 0 ? (
             <Box sx={{ width: "100%", height: 350 }}>
               <Line
+                key={lineChartKey}
                 data={{
                   labels: expensesOverTimeData.dates,
                   datasets: expensesOverTimeData.categories.map(
@@ -542,12 +574,32 @@ const DashboardPage: React.FC = () => {
               justifyContent: "center",
             }}
           >
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: "bold", mb: 2, alignSelf: "center" }}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "100%",
+                mb: 2,
+              }}
             >
-              Spending by Category
-            </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: "bold", alignSelf: "center" }}
+              >
+                Spending by Category
+              </Typography>
+              <IconButton
+                onClick={handlePieChartRefresh}
+                size="small"
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": { color: "primary.main" },
+                }}
+              >
+                <FeatherIcons.RefreshCw size={16} />
+              </IconButton>
+            </Box>
             {loading ? (
               <Skeleton variant="rectangular" height={400} />
             ) : categoryTableData.length > 0 ? (
@@ -561,7 +613,11 @@ const DashboardPage: React.FC = () => {
                   justifyContent: "center",
                 }}
               >
-                <Pie data={pieChartDataJS} options={pieOptions} />
+                <Pie
+                  key={pieChartKey}
+                  data={pieChartDataJS}
+                  options={pieOptions}
+                />
               </Box>
             ) : (
               <Typography sx={{ m: "auto", textAlign: "center", py: 4 }}>
