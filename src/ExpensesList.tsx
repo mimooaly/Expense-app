@@ -1029,15 +1029,31 @@ export default function ExpensesList() {
             </Box>
             {!isMobile && (
               <Tooltip title="Export to Excel">
-                <IconButton
+                <Button
+                  variant="text"
                   size="small"
                   onClick={() =>
                     exportToCSV(filteredExpenses, preferences.defaultCurrency)
                   }
-                  sx={{ color: "primary.dark", marginBottom: 1 }}
+                  sx={{
+                    color: "primary.dark",
+                    marginBottom: 1,
+                  }}
                 >
-                  <FeatherIcons.FileText size={18} />
-                </IconButton>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <FeatherIcons.FileText size={18} />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "0.875rem",
+                        width: "100px",
+                        marginRight: "20px",
+                      }}
+                    >
+                      Export CSV
+                    </Typography>
+                  </Box>
+                </Button>
               </Tooltip>
             )}
           </Box>
