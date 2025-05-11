@@ -10,6 +10,7 @@ import Support from "./Support";
 import Header from "./components/Header";
 import Settings from "./Settings";
 import { Analytics } from "@vercel/analytics/react";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 
 const theme = createTheme({
   palette: {
@@ -30,6 +31,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        <GoogleAnalytics />
         <Header />
         <Routes>
           <Route path="/" element={<LandingPage />} />
