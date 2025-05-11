@@ -384,10 +384,18 @@ const DashboardPage: React.FC = () => {
             },
           }}
         >
-          <ToggleButton value="MTD">{currentMonthName}</ToggleButton>
-          <ToggleButton value="3M">3M</ToggleButton>
-          <ToggleButton value="6M">6M</ToggleButton>
-          <ToggleButton value="YTD">YTD</ToggleButton>
+          <ToggleButton className="toggleButton" value="MTD">
+            {currentMonthName}
+          </ToggleButton>
+          <ToggleButton className="toggleButton" value="3M">
+            3M
+          </ToggleButton>
+          <ToggleButton className="toggleButton" value="6M">
+            6M
+          </ToggleButton>
+          <ToggleButton className="toggleButton" value="YTD">
+            YTD
+          </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -472,7 +480,7 @@ const DashboardPage: React.FC = () => {
           >
             <Typography
               variant="body1"
-              sx={{ fontWeight: "bold", mb: 2, alignSelf: "flex-start" }}
+              sx={{ fontWeight: "bold", mb: 2, alignSelf: "center" }}
             >
               Spending by Category
             </Typography>
