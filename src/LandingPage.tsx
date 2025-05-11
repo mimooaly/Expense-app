@@ -474,6 +474,7 @@ const LandingPage: React.FC = () => {
               slidesToShow={2}
               slidesToScroll={1}
               arrows={true}
+              dotsClass="slick-dots"
               responsive={[
                 {
                   breakpoint: 1200,

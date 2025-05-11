@@ -257,6 +257,7 @@ const Settings = () => {
                       </TableCell>
                       <TableCell>
                         <IconButton
+                          className="categActionButton"
                           onClick={() => {
                             setSelectedCategory(category);
                             setIsEditDialogOpen(true);
@@ -273,6 +274,7 @@ const Settings = () => {
                         >
                           <span>
                             <IconButton
+                              className="categActionButton"
                               onClick={() => handleDeleteCategory(category)}
                               disabled={!category.isCustom}
                             >

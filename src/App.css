@@ -256,6 +256,18 @@
   color: #1b5e20;
   background-color: rgba(46, 125, 50, 0.12);
 }
+
+/* Slick Carousel */
+
+.slick-dots li.slick-active button:before {
+  font-size: 20px !important;
+  color: #57A556 !important; 
+}
+
+.categActionButton {
+  margin:8px !important;
+}
+
 /* MUI default breakpoint for 'sm' is 600px. 
    This will apply to screens smaller than that. */
 @media (max-width: 599.95px) { 
