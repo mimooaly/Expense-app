@@ -223,7 +223,7 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
                 <Box display="flex" alignItems="center">
                   {getCategoryIcon(expense.category)}
                   <span style={{ marginLeft: 8 }}>
-                    {getCategoryName(expense.category)}
+                    {expense.categoryName || getCategoryName(expense.category)}
                   </span>
                 </Box>
               </TableCell>
@@ -395,10 +395,11 @@ const exportToCSV = (expenses: Expense[], currency: string) => {
 
 export default function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const currentDate = new Date();
   const [filters, setFilters] = useState({
     category: "",
-    month: 0,
-    year: 0,
+    month: currentDate.getMonth() + 1, // Current month (1-12)
+    year: currentDate.getFullYear(), // Current year
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -435,10 +436,39 @@ export default function ExpensesList() {
       const unsubscribe = onValue(expensesRef, async (snapshot: any) => {
         const data = snapshot.val();
         if (data) {
-          const expensesList = Object.entries(data).map(
-            ([id, value]: [string, any]) => ({
-              id,
-              ...value,
+          const expensesList = await Promise.all(
+            Object.entries(data).map(async ([id, value]: [string, any]) => {
+              // Get category name based on whether it's a custom or default category
+              let categoryName = "";
+              if (value?.category) {
+                // Add safety check for category
+                if (value.category.startsWith("custom_")) {
+                  // For custom categories, get the name from the customCategories node
+                  const customCategoryRef = ref(
+                    database,
+                    `customCategories/${user.uid}/${value.category.replace(
+                      "custom_",
+                      ""
+                    )}`
+                  );
+                  const snapshot = await get(customCategoryRef);
+                  if (snapshot.exists()) {
+                    categoryName = snapshot.val().name;
+                  }
+                } else {
+                  // For default categories, get the name from expensesCateg
+                  categoryName =
+                    expensesCateg.find(
+                      (cat) => cat.id === parseInt(value.category)
+                    )?.name || "";
+                }
+              }
+
+              return {
+                id,
+                ...value,
+                categoryName: categoryName || "Uncategorized", // Provide default value
+              };
             })
           );
 
@@ -619,14 +649,40 @@ export default function ExpensesList() {
     if (!user) return;
 
     try {
-      await update(ref(database, `expenses/${user.uid}/${expense.id}`), {
-        ...expense,
-        categoryName:
-          expensesCateg.find(
-            (cat: { id: number; name: string; icon: string }) =>
-              cat.id === parseInt(expense.category)
-          )?.name || "",
-      });
+      // Get category name based on whether it's a custom or default category
+      let categoryName = "";
+      if (expense.category.startsWith("custom_")) {
+        // For custom categories, get the name from the customCategories node
+        const customCategoryRef = ref(
+          database,
+          `customCategories/${user.uid}/${expense.category.replace(
+            "custom_",
+            ""
+          )}`
+        );
+        const snapshot = await get(customCategoryRef);
+        if (snapshot.exists()) {
+          categoryName = snapshot.val().name;
+        }
+      } else {
+        // For default categories, get the name from expensesCateg
+        categoryName =
+          expensesCateg.find((cat) => cat.id === parseInt(expense.category))
+            ?.name || "";
+      }
+
+      // Update the existing expense record
+      const expenseRef = ref(database, `expenses/${user.uid}/${expense.id}`);
+      const updates = {
+        name: expense.name,
+        category: expense.category,
+        categoryName,
+        amount: expense.amount,
+        date: expense.date,
+        monthly: expense.monthly,
+      };
+
+      await update(expenseRef, updates);
       setIsEditDialogOpen(false);
       setSelectedExpense(null);
     } catch (error) {

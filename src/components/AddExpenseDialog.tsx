@@ -44,13 +44,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   const { preferences } = useUserPreferences();
 
   const formik = useFormik({
-    initialValues: initialValues || {
-      name: "",
-      category: "",
-      amount: "",
-      date: new Date().toISOString().slice(0, 10),
-      monthly: false,
-      currency: "USD",
+    initialValues: {
+      name: initialValues?.name || "",
+      category: initialValues?.category || "",
+      amount: initialValues?.amount || "",
+      date: initialValues?.date || new Date().toISOString().slice(0, 10),
+      monthly: initialValues?.monthly || false,
+      currency: initialValues?.currency || "USD",
     },
     enableReinitialize: true,
     validationSchema: Yup.object({
@@ -65,7 +65,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         try {
           const amountToSave =
             usdAmount !== null ? usdAmount : Number(values.amount);
-          await onSave({ ...values, amount: amountToSave, currency: "USD" });
+          await onSave({
+            ...values,
+            amount: amountToSave,
+            currency: "USD",
+            id: initialValues?.id,
+          });
           setError("");
           onClose();
         } catch (error) {
@@ -184,7 +189,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             label="Category"
             name="category"
             size="small"
-            value={formik.values.category}
+            value={formik.values.category || ""}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             error={!!(formik.touched.category && formik.errors.category)}
