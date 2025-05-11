@@ -395,12 +395,6 @@ const DashboardPage: React.FC = () => {
     },
   };
 
-  // Get top spending categories
-  const getTopSpendingCategories = () => {
-    // Use the same categoryTableData that's used for the table
-    return categoryTableData.slice(0, 5).map((cat) => cat.name);
-  };
-
   // Get categories with data
   const getCategoriesWithData = () => {
     // Get all categories (both default and custom)

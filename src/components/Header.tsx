@@ -14,7 +14,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { List, BarChart2, Settings } from "react-feather";

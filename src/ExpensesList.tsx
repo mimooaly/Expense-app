@@ -61,6 +61,7 @@ export interface Expense {
   startDate: string;
   isPaused: boolean;
   nextDate: string;
+  currency: string;
 }
 
 interface ExpensesTableProps {
@@ -636,6 +637,7 @@ export default function ExpensesList() {
         isPaused: false,
         nextDate: nextMonth.toISOString().split("T")[0],
         lastAdded: values.monthly ? todayISOString : "",
+        currency: values.currency || "",
       };
 
       // Push the new expense to Firebase
@@ -722,6 +724,7 @@ export default function ExpensesList() {
         amount: expense.amount,
         date: expense.date,
         monthly: expense.monthly,
+        currency: expense.currency,
       };
 
       await update(expenseRef, updates);
@@ -883,11 +886,13 @@ export default function ExpensesList() {
             categoryName: exp.categoryName,
             date: todayISOString,
             monthly: false, // The new instance is not recurring
+            currency: exp.currency,
           });
 
           // Update lastAdded date of the recurring expense
           await update(ref(database, `expenses/${user.uid}/${exp.id}`), {
             lastAdded: todayISOString,
+            currency: exp.currency,
           });
         }
       }
