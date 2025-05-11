@@ -6,8 +6,10 @@ import {
   Stack,
   Drawer,
   IconButton,
+  Link,
+  styled,
 } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import iconImage from "./assets/icon.png";
 import appVideo from "./assets/app.mp4";
 import bgImage from "./assets/bg.svg";
@@ -23,12 +25,39 @@ import {
   List,
   DollarSign,
   Menu as MenuIcon,
+  Home,
+  Info,
+  Heart,
+  User,
 } from "react-feather";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Flag from "react-world-flags";
 import { currencyOptions } from "./data/currencyOptions";
+import theme from "./theme";
+
+interface NavLinkProps {
+  active?: boolean;
+}
+
+const NavLink = styled(Link, {
+  shouldForwardProp: (prop) => prop !== "active",
+})<NavLinkProps>(({ theme, active }) => ({
+  textDecoration: "none",
+  color: active ? theme.palette.success.dark : theme.palette.primary.main,
+  padding: "8px 12px",
+  borderRadius: "8px",
+  transition: "all 0.2s ease-in-out",
+  backgroundColor: active ? "rgba(46, 125, 50, 0.12)" : "transparent",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  "&:hover": {
+    backgroundColor: "rgba(46, 125, 50, 0.16)",
+    color: theme.palette.success.dark,
+  },
+}));
 
 const currencyCountryMap: Record<string, { code: string; name: string }> = {
   USD: { code: "US", name: "United States" },
@@ -62,11 +91,11 @@ const LandingPage: React.FC = () => {
   }, []);
 
   const navLinks = [
-    { label: "Home", id: "hero" },
-    { label: "Benefits", id: "why" },
-    { label: "Supported Currencies", id: "currencies" },
-    { label: "About", id: "about" },
-    { label: "Donate", id: "support" },
+    { label: "Home", id: "hero", icon: <Home size={20} /> },
+    { label: "Benefits", id: "why", icon: <Info size={20} /> },
+    { label: "Currencies", id: "currencies", icon: <Globe size={20} /> },
+    { label: "About", id: "about", icon: <User size={20} /> },
+    { label: "Donate", id: "support", icon: <DollarSign size={20} /> },
   ];
 
   return (
@@ -109,16 +138,11 @@ const LandingPage: React.FC = () => {
             Penny Logs
           </Box>
           {/* Desktop links */}
-          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 4 }}>
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
             {navLinks.map((link) => (
-              <a
+              <NavLink
                 key={link.id}
                 href={`#${link.id}`}
-                style={{
-                  textDecoration: "none",
-                  color: "#333",
-                  fontWeight: 500,
-                }}
                 onClick={(e) => {
                   e.preventDefault();
                   document
@@ -126,8 +150,9 @@ const LandingPage: React.FC = () => {
                     ?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
+                {link.icon}
                 {link.label}
-              </a>
+              </NavLink>
             ))}
           </Box>
           {/* Mobile hamburger */}
@@ -142,7 +167,7 @@ const LandingPage: React.FC = () => {
             >
               <Box
                 sx={{
-                  width: 320,
+                  width: 220,
                   p: 3,
                   pt: 6,
                   display: "flex",
@@ -156,9 +181,12 @@ const LandingPage: React.FC = () => {
                     href={`#${link.id}`}
                     style={{
                       textDecoration: "none",
-                      color: "#333",
+                      color: theme.palette.primary.dark,
                       fontWeight: 500,
                       fontSize: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
                     }}
                     onClick={(e) => {
                       e.preventDefault();
@@ -170,6 +198,7 @@ const LandingPage: React.FC = () => {
                       }, 150);
                     }}
                   >
+                    {link.icon}
                     {link.label}
                   </a>
                 ))}
@@ -259,6 +288,7 @@ const LandingPage: React.FC = () => {
                   color: "#57A556",
                   letterSpacing: "-1px",
                   lineHeight: 1.2,
+                  maxWidth: 500,
                   fontFamily: "Inter, Helvetica, Arial, sans-serif",
                 }}
               >
@@ -291,7 +321,7 @@ const LandingPage: React.FC = () => {
                     variant="contained"
                     size="large"
                     component={Link}
-                    to="/dashboard"
+                    href="/dashboard"
                     sx={{
                       borderRadius: 3,
                       px: 5,
@@ -309,7 +339,7 @@ const LandingPage: React.FC = () => {
                       variant="contained"
                       size="large"
                       component={Link}
-                      to="/register"
+                      href="/register"
                       sx={{
                         borderRadius: 3,
                         px: 5,
@@ -325,7 +355,7 @@ const LandingPage: React.FC = () => {
                       variant="outlined"
                       size="large"
                       component={Link}
-                      to="/login"
+                      href="/login"
                       sx={{
                         borderRadius: 3,
                         px: 5,
@@ -598,11 +628,14 @@ const LandingPage: React.FC = () => {
               >
                 <Flag
                   code={currencyCountryMap[opt.code]?.code}
-                  height="36"
                   style={{
                     marginBottom: 8,
-                    borderRadius: 6,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                    borderRadius: "999px",
+                    width: "40px",
+                    height: "40px",
+                    objectFit: "cover",
+                    objectPosition: "center",
+                    border: "1px solid #e0e0e0",
                   }}
                   fallback={
                     <span style={{ fontSize: 32, marginBottom: 8 }}>🏳️</span>
@@ -645,6 +678,7 @@ const LandingPage: React.FC = () => {
             display: "flex",
             flexDirection: { xs: "column", md: "row" },
             alignItems: "center",
+            justifyContent: "center",
             gap: 8,
           }}
         >
@@ -684,7 +718,6 @@ const LandingPage: React.FC = () => {
               flex: 1,
               display: "flex",
               justifyContent: "center",
-              alignItems: "center",
             }}
           >
             <img
@@ -692,7 +725,7 @@ const LandingPage: React.FC = () => {
               alt="Cash illustration"
               style={{
                 width: "100%",
-                maxWidth: 400,
+                maxWidth: 300,
                 height: "auto",
               }}
             />
@@ -797,7 +830,7 @@ const LandingPage: React.FC = () => {
         <Typography
           variant="body2"
           component={Link}
-          to="/support"
+          href="/support"
           sx={{
             color: "primary.main",
             textDecoration: "none",
