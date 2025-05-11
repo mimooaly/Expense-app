@@ -384,6 +384,21 @@ const LandingPage: React.FC = () => {
                     </>
                   )}
                 </Stack>
+                <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+                  <a
+                    href="https://www.producthunt.com/posts/penny-logs?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-penny&#0045;logs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=964053&theme=light&t=1746975520416"
+                      alt="Penny Logs - Track your cash spending — free, simple, and no sign-up. | Product Hunt"
+                      style={{ width: 250, height: 54 }}
+                      width="250"
+                      height="54"
+                    />
+                  </a>
+                </Box>
               </Box>
 
               {/* Right Column - Video */}
