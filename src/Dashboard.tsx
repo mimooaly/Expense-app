@@ -187,43 +187,94 @@ const DashboardPage: React.FC = () => {
 
   // Expenses Over Time (Line Chart)
   const expensesOverTimeData = (() => {
+    // Create a map to store expenses by category and date
+    const categoryExpensesMap = new Map<string, Map<string, number>>();
+
+    // Initialize the map with all categories
+    categories.forEach((category) => {
+      categoryExpensesMap.set(category.name, new Map());
+    });
+
     if (timePeriod === "MTD") {
-      // Group by day
-      const map = new Map<string, number>();
+      // Group by day and category
       filteredExpenses.forEach((exp) => {
         const dayKey = new Date(exp.date).toISOString().split("T")[0];
-        map.set(dayKey, (map.get(dayKey) || 0) + exp.amount);
+        const categoryName = exp.categoryName || "Uncategorized";
+        const categoryMap = categoryExpensesMap.get(categoryName) || new Map();
+        categoryMap.set(dayKey, (categoryMap.get(dayKey) || 0) + exp.amount);
+        categoryExpensesMap.set(categoryName, categoryMap);
       });
-      // Fill in missing days for the current month if MTD
+
+      // Fill in missing days for all categories
       const now = new Date();
       const daysInMonth = now.getDate();
       const year = now.getFullYear();
       const month = now.getMonth();
+
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
         const dayKey = date.toISOString().split("T")[0];
-        if (!map.has(dayKey)) {
-          map.set(dayKey, 0);
-        }
+        categoryExpensesMap.forEach((categoryMap) => {
+          if (!categoryMap.has(dayKey)) {
+            categoryMap.set(dayKey, 0);
+          }
+        });
       }
-      // Sort by date
-      return Array.from(map.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, amount]) => ({ date, amount }));
+
+      // Get all unique dates
+      const allDates = Array.from(
+        new Set(
+          Array.from(categoryExpensesMap.values()).flatMap((map) =>
+            Array.from(map.keys())
+          )
+        )
+      ).sort();
+
+      // Convert to the format needed for the chart
+      return {
+        dates: allDates,
+        categories: Array.from(categoryExpensesMap.entries()).map(
+          ([category, dateMap]) => ({
+            name: category,
+            data: allDates.map((date) => dateMap.get(date) || 0),
+          })
+        ),
+      };
     } else {
-      // Group by month
-      const map = new Map<string, number>();
+      // Group by month and category
       filteredExpenses.forEach((exp) => {
         const date = new Date(exp.date);
         const monthKey = `${date.getFullYear()}-${String(
           date.getMonth() + 1
         ).padStart(2, "0")}`;
-        map.set(monthKey, (map.get(monthKey) || 0) + exp.amount);
+        const categoryName = exp.categoryName || "Uncategorized";
+        const categoryMap = categoryExpensesMap.get(categoryName) || new Map();
+        categoryMap.set(
+          monthKey,
+          (categoryMap.get(monthKey) || 0) + exp.amount
+        );
+        categoryExpensesMap.set(categoryName, categoryMap);
       });
-      return Array.from(map.entries()).map(([date, amount]) => ({
-        date,
-        amount,
-      }));
+
+      // Get all unique months
+      const allMonths = Array.from(
+        new Set(
+          Array.from(categoryExpensesMap.values()).flatMap((map) =>
+            Array.from(map.keys())
+          )
+        )
+      ).sort();
+
+      // Convert to the format needed for the chart
+      return {
+        dates: allMonths,
+        categories: Array.from(categoryExpensesMap.entries()).map(
+          ([category, dateMap]) => ({
+            name: category,
+            data: allMonths.map((month) => dateMap.get(month) || 0),
+          })
+        ),
+      };
     }
   })();
 
@@ -287,13 +338,25 @@ const DashboardPage: React.FC = () => {
   const lineOptions = {
     responsive: true,
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: true,
+        position: "bottom" as const,
+        labels: {
+          boxWidth: 12,
+          padding: 15,
+          usePointStyle: true,
+          pointStyle: "circle",
+        },
+      },
       tooltip: {
         callbacks: {
           label: function (context: any) {
-            return `${context.parsed.y.toLocaleString(undefined, {
-              maximumFractionDigits: 2,
-            })} ${preferences.defaultCurrency}`;
+            return `${context.dataset.label}: ${context.parsed.y.toLocaleString(
+              undefined,
+              {
+                maximumFractionDigits: 2,
+              }
+            )} ${preferences.defaultCurrency}`;
           },
         },
       },
@@ -306,9 +369,8 @@ const DashboardPage: React.FC = () => {
         },
         ticks: {
           callback: function (val: any, idx: number) {
-            const date = expensesOverTimeData[idx]?.date;
+            const date = expensesOverTimeData.dates[idx];
             if (timePeriod === "MTD" && date) {
-              // Show day of month (1, 2, 3, ...)
               return new Date(date).getDate();
             }
             return date || val;
@@ -415,25 +477,27 @@ const DashboardPage: React.FC = () => {
           </Typography>
           {loading ? (
             <Skeleton variant="rectangular" height={350} />
-          ) : expensesOverTimeData.length > 0 ? (
+          ) : expensesOverTimeData.dates.length > 0 ? (
             <Box sx={{ width: "100%", height: 350 }}>
               <Line
                 data={{
-                  labels: expensesOverTimeData.map((d) => d.date),
-                  datasets: [
-                    {
-                      label: `Expenses (${preferences.defaultCurrency})`,
-                      data: expensesOverTimeData.map((d) => d.amount),
-                      fill: true,
-                      backgroundColor: "rgba(76, 175, 80, 0.1)", // light green with opacity
-                      borderColor: theme.palette.primary.main,
+                  labels: expensesOverTimeData.dates,
+                  datasets: expensesOverTimeData.categories.map(
+                    (category, index) => ({
+                      label: category.name,
+                      data: category.data,
+                      fill: false,
+                      borderColor: PIE_COLORS[index % PIE_COLORS.length],
+                      backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
                       tension: 0.3,
-                      pointBackgroundColor: theme.palette.primary.main,
+                      pointBackgroundColor:
+                        PIE_COLORS[index % PIE_COLORS.length],
                       pointBorderColor: "#fff",
                       pointHoverBackgroundColor: "#fff",
-                      pointHoverBorderColor: theme.palette.primary.main,
-                    },
-                  ],
+                      pointHoverBorderColor:
+                        PIE_COLORS[index % PIE_COLORS.length],
+                    })
+                  ),
                 }}
                 options={{
                   ...lineOptions,
