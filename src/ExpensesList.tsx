@@ -263,6 +263,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   const categories = useCategories();
   const { preferences } = useUserPreferences();
 
+  // Sort expenses by date in descending order (most recent first)
+  const sortedExpenses = [...expenses].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   const getCategoryIcon = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return null;
@@ -301,7 +306,7 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
 
   return (
     <List className="expenses-list-mobile">
-      {expenses.map((expense) => (
+      {sortedExpenses.map((expense) => (
         <ListItem
           key={expense.id}
           divider
@@ -620,13 +625,21 @@ export default function ExpensesList() {
       const todayISOString = today.toISOString();
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
-      await push(ref(database, `expenses/${user.uid}`), {
-        ...values,
-        categoryName,
+      // Create the expense object with all required fields
+      const newExpense = {
+        name: values.name || "",
+        amount: Number(values.amount) || 0,
+        category: values.category || "",
+        categoryName: categoryName || "Uncategorized",
+        date: values.date || todayISOString,
+        monthly: Boolean(values.monthly),
         isPaused: false,
         nextDate: nextMonth.toISOString().split("T")[0],
         lastAdded: values.monthly ? todayISOString : "",
-      });
+      };
+
+      // Push the new expense to Firebase
+      await push(ref(database, `expenses/${user.uid}`), newExpense);
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Error adding expense:", error);
