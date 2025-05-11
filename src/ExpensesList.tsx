@@ -118,67 +118,8 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
 }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<keyof Expense>("date");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const categories = useCategories();
   const { preferences } = useUserPreferences();
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Load custom categories and user preferences
-    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
-    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
-
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
-      const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
-        const prefsData = prefsSnapshot.val();
-        const modifiedData = prefsData?.modifiedCategories || {};
-
-        // Convert custom categories to array with prefixed IDs
-        const customCategoriesList = customData
-          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
-              ...value,
-              id: `custom_${id}`,
-              isCustom: true,
-            }))
-          : [];
-
-        // Get modified default categories
-        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
-          (acc, [id, value]: [string, any]) => {
-            acc[id] = value;
-            return acc;
-          },
-          {} as Record<string, any>
-        );
-
-        // Combine with default categories, applying modifications
-        const allCategories = [
-          ...expensesCateg.map((cat) => {
-            const id = cat.id.toString();
-            if (modifiedCategoriesMap[id]) {
-              return {
-                ...cat,
-                ...modifiedCategoriesMap[id],
-                id,
-              };
-            }
-            return {
-              ...cat,
-              id,
-            };
-          }),
-          ...customCategoriesList,
-        ];
-        setCategories(allCategories);
-      });
-
-      return () => unsubscribePrefs();
-    });
-
-    return () => unsubscribeCustom();
-  }, []);
 
   const handleRequestSort = (property: keyof Expense) => {
     const isAsc = orderBy === property && order === "asc";
@@ -188,8 +129,8 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
 
   const sortedExpenses = stableSort(expenses, getComparator(order, orderBy));
 
-  const getCategoryIcon = (categoryName: string) => {
-    const category = categories.find((cat) => cat.name === categoryName);
+  const getCategoryIcon = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return null;
 
     if (category.icon === "folder") {
@@ -217,6 +158,11 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
         style={{ marginRight: 8, verticalAlign: "middle" }}
       />
     ) : null;
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
   };
 
   return (
@@ -256,8 +202,10 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
             >
               <TableCell>
                 <Box display="flex" alignItems="center">
-                  {getCategoryIcon(expense.categoryName)}
-                  <span style={{ marginLeft: 8 }}>{expense.categoryName}</span>
+                  {getCategoryIcon(expense.category)}
+                  <span style={{ marginLeft: 8 }}>
+                    {getCategoryName(expense.category)}
+                  </span>
                 </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>{expense.name}</TableCell>
@@ -289,70 +237,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   onDelete,
   onEdit,
 }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const categories = useCategories();
   const { preferences } = useUserPreferences();
 
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Load custom categories and user preferences
-    const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
-    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
-
-    const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
-      const customData = snapshot.val();
-      const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
-        const prefsData = prefsSnapshot.val();
-        const modifiedData = prefsData?.modifiedCategories || {};
-
-        // Convert custom categories to array with prefixed IDs
-        const customCategoriesList = customData
-          ? Object.entries(customData).map(([id, value]: [string, any]) => ({
-              ...value,
-              id: `custom_${id}`,
-              isCustom: true,
-            }))
-          : [];
-
-        // Get modified default categories
-        const modifiedCategoriesMap = Object.entries(modifiedData).reduce(
-          (acc, [id, value]: [string, any]) => {
-            acc[id] = value;
-            return acc;
-          },
-          {} as Record<string, any>
-        );
-
-        // Combine with default categories, applying modifications
-        const allCategories = [
-          ...expensesCateg.map((cat) => {
-            const id = cat.id.toString();
-            if (modifiedCategoriesMap[id]) {
-              return {
-                ...cat,
-                ...modifiedCategoriesMap[id],
-                id,
-              };
-            }
-            return {
-              ...cat,
-              id,
-            };
-          }),
-          ...customCategoriesList,
-        ];
-        setCategories(allCategories);
-      });
-
-      return () => unsubscribePrefs();
-    });
-
-    return () => unsubscribeCustom();
-  }, []);
-
-  const getCategoryIcon = (categoryName: string) => {
-    const category = categories.find((cat) => cat.name === categoryName);
+  const getCategoryIcon = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return null;
 
     if (category.icon === "folder") {
@@ -382,6 +271,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
     ) : null;
   };
 
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
+  };
+
   return (
     <List className="expenses-list-mobile">
       {expenses.map((expense) => (
@@ -390,7 +284,7 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
             primary={
               <div className="expense-list-item-mobile-primary">
                 <Box display="flex" alignItems="center">
-                  {getCategoryIcon(expense.categoryName)}
+                  {getCategoryIcon(expense.category)}
                   <span className="expense-list-item-mobile-name">
                     {expense.name}
                   </span>
@@ -407,7 +301,7 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
                   {preferences.defaultCurrency}
                 </span>
                 <span className="expense-list-item-mobile-secondary">
-                  {expense.categoryName} •{" "}
+                  {getCategoryName(expense.category)} •{" "}
                   {new Date(expense.date).toLocaleDateString()}
                 </span>
               </>

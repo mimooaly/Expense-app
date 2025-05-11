@@ -27,7 +27,7 @@ import { Edit2, Trash2, Folder } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
-import { ref, push, remove, update, set } from "firebase/database";
+import { ref, push, remove, update, set, get } from "firebase/database";
 import { useUserPreferences } from "./hooks/useUserPreferences";
 import { currencyOptions } from "./data/currencyOptions";
 
@@ -93,6 +93,27 @@ const Settings = () => {
             icon: "folder",
           }
         );
+
+        // Update all expenses that use this custom category
+        const expensesRef = ref(database, `expenses/${user.uid}`);
+        const snapshot = await get(expensesRef);
+        if (snapshot.exists()) {
+          const expenses = snapshot.val();
+          const updates: { [key: string]: any } = {};
+
+          Object.entries(expenses).forEach(
+            ([expenseId, expense]: [string, any]) => {
+              if (expense.category === category.id) {
+                updates[`expenses/${user.uid}/${expenseId}/categoryName`] =
+                  category.name;
+              }
+            }
+          );
+
+          if (Object.keys(updates).length > 0) {
+            await update(ref(database), updates);
+          }
+        }
       } else {
         // For default categories, store modifications in userPreferences
         await set(
@@ -106,6 +127,27 @@ const Settings = () => {
             isCustom: false,
           }
         );
+
+        // Update all expenses that use this default category
+        const expensesRef = ref(database, `expenses/${user.uid}`);
+        const snapshot = await get(expensesRef);
+        if (snapshot.exists()) {
+          const expenses = snapshot.val();
+          const updates: { [key: string]: any } = {};
+
+          Object.entries(expenses).forEach(
+            ([expenseId, expense]: [string, any]) => {
+              if (expense.category === category.id) {
+                updates[`expenses/${user.uid}/${expenseId}/categoryName`] =
+                  category.name;
+              }
+            }
+          );
+
+          if (Object.keys(updates).length > 0) {
+            await update(ref(database), updates);
+          }
+        }
       }
       setIsEditDialogOpen(false);
       setSelectedCategory(null);
