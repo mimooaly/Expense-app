@@ -32,25 +32,13 @@ import {
   Divider,
   Tooltip,
   Checkbox,
-  Toolbar,
-  Menu,
-  MenuItem,
-  ListItemIcon,
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import {
-  Trash2,
-  Edit2,
-  MoreVertical,
-  Tag,
-  DollarSign,
-  Calendar,
-  RefreshCw,
-} from "react-feather";
+import { Trash2, Edit2 } from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
@@ -271,7 +259,6 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   onEdit,
   selected,
   onSelect,
-  onSelectAll,
 }) => {
   const categories = useCategories();
   const { preferences } = useUserPreferences();

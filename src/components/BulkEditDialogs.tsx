@@ -10,7 +10,6 @@ import {
   MenuItem,
 } from "@mui/material";
 import { Category } from "../hooks/useCategories";
-import * as FeatherIcons from "react-feather";
 
 interface BulkEditDialogsProps {
   isCategoryDialogOpen: boolean;
