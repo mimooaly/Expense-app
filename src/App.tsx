@@ -9,6 +9,7 @@ import LandingPage from "./LandingPage";
 import Support from "./Support";
 import Header from "./components/Header";
 import Settings from "./Settings";
+import { Analytics } from "@vercel/analytics/react";
 
 const theme = createTheme({
   palette: {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Router>
+      <Analytics />
     </ThemeProvider>
   );
 }
