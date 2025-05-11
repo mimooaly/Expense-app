@@ -114,6 +114,7 @@ const DashboardPage: React.FC = () => {
   const categories = useCategories();
   const [lineChartKey, setLineChartKey] = useState(0);
   const [pieChartKey, setPieChartKey] = useState(0);
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>([]);
 
   // Get current month name for the MTD button
   const currentMonthName = new Date().toLocaleString(undefined, {
@@ -394,6 +395,69 @@ const DashboardPage: React.FC = () => {
     },
   };
 
+  // Get top spending categories
+  const getTopSpendingCategories = () => {
+    // Use the same categoryTableData that's used for the table
+    return categoryTableData.slice(0, 5).map((cat) => cat.name);
+  };
+
+  // Get categories with data
+  const getCategoriesWithData = () => {
+    // Get all categories (both default and custom)
+    const allCategories = categories.map((cat) => cat.name);
+
+    // Get categories that have expenses
+    const categoriesWithExpenses = categoryTableData
+      .filter((cat) => cat.value > 0)
+      .map((cat) => cat.name);
+
+    // Return all categories that either have expenses or are custom categories
+    return allCategories.filter(
+      (cat) =>
+        categoriesWithExpenses.includes(cat) ||
+        categories.find((c) => c.name === cat)?.isCustom
+    );
+  };
+
+  // Initialize hidden categories with none (show all categories with data)
+  useEffect(() => {
+    if (categories.length > 0) {
+      const categoriesToShow = getCategoriesWithData();
+      const allCategories = categories.map((cat) => cat.name);
+      const categoriesToHide = allCategories.filter(
+        (cat) => !categoriesToShow.includes(cat)
+      );
+
+      // Only update if the hidden categories have actually changed
+      if (
+        JSON.stringify(categoriesToHide) !== JSON.stringify(hiddenCategories)
+      ) {
+        setHiddenCategories(categoriesToHide);
+      }
+    }
+  }, [categories, categoryTableData]); // Add categories to dependencies
+
+  // Update line chart data
+  const lineChartData = {
+    labels: expensesOverTimeData.dates,
+    datasets: categoryTableData
+      .filter((category) => !hiddenCategories.includes(category.name))
+      .map((category, index) => ({
+        label: category.name,
+        data:
+          expensesOverTimeData.categories.find((c) => c.name === category.name)
+            ?.data || [],
+        fill: false,
+        borderColor: PIE_COLORS[index % PIE_COLORS.length],
+        backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+        tension: 0.3,
+        pointBackgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: PIE_COLORS[index % PIE_COLORS.length],
+      })),
+  };
+
   const handleLineChartRefresh = () => {
     setLineChartKey((prev) => prev + 1);
   };
@@ -512,25 +576,7 @@ const DashboardPage: React.FC = () => {
             <Box sx={{ width: "100%", height: 350 }}>
               <Line
                 key={lineChartKey}
-                data={{
-                  labels: expensesOverTimeData.dates,
-                  datasets: expensesOverTimeData.categories.map(
-                    (category, index) => ({
-                      label: category.name,
-                      data: category.data,
-                      fill: false,
-                      borderColor: PIE_COLORS[index % PIE_COLORS.length],
-                      backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
-                      tension: 0.3,
-                      pointBackgroundColor:
-                        PIE_COLORS[index % PIE_COLORS.length],
-                      pointBorderColor: "#fff",
-                      pointHoverBackgroundColor: "#fff",
-                      pointHoverBorderColor:
-                        PIE_COLORS[index % PIE_COLORS.length],
-                    })
-                  ),
-                }}
+                data={lineChartData}
                 options={{
                   ...lineOptions,
                   maintainAspectRatio: false,

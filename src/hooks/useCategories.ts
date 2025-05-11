@@ -19,13 +19,12 @@ export function useCategories() {
 
     // Load custom categories and user preferences
     const customCategoriesRef = ref(database, `customCategories/${user.uid}`);
-    const userPrefsRef = ref(database, `userPreferences/${user.uid}`);
+    const userPrefsRef = ref(database, `userPreferences/${user.uid}/modifiedCategories`);
 
     const unsubscribeCustom = onValue(customCategoriesRef, (snapshot: any) => {
       const customData = snapshot.val();
       const unsubscribePrefs = onValue(userPrefsRef, (prefsSnapshot: any) => {
-        const prefsData = prefsSnapshot.val();
-        const modifiedData = prefsData?.modifiedCategories || {};
+        const modifiedData = prefsSnapshot.val() || {};
 
         // Convert custom categories to array with prefixed IDs
         const customCategoriesList = customData
@@ -63,6 +62,14 @@ export function useCategories() {
           }),
           ...customCategoriesList,
         ];
+
+        // Sort categories: custom categories first, then default categories
+        allCategories.sort((a, b) => {
+          if (a.isCustom && !b.isCustom) return -1;
+          if (!a.isCustom && b.isCustom) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
         setCategories(allCategories);
       });
       return () => unsubscribePrefs();

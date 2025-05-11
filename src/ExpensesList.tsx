@@ -435,15 +435,23 @@ export default function ExpensesList() {
       }
 
       const expensesRef = ref(database, `expenses/${user.uid}`);
+      const userPrefsRef = ref(
+        database,
+        `userPreferences/${user.uid}/modifiedCategories`
+      );
+
       const unsubscribe = onValue(expensesRef, async (snapshot: any) => {
         const data = snapshot.val();
         if (data) {
+          // Get modified categories
+          const prefsSnapshot = await get(userPrefsRef);
+          const modifiedCategories = prefsSnapshot.val() || {};
+
           const expensesList = await Promise.all(
             Object.entries(data).map(async ([id, value]: [string, any]) => {
               // Get category name based on whether it's a custom or default category
               let categoryName = "";
               if (value?.category) {
-                // Add safety check for category
                 if (value.category.startsWith("custom_")) {
                   // For custom categories, get the name from the customCategories node
                   const customCategoryRef = ref(
@@ -458,18 +466,24 @@ export default function ExpensesList() {
                     categoryName = snapshot.val().name;
                   }
                 } else {
-                  // For default categories, get the name from expensesCateg
-                  categoryName =
-                    expensesCateg.find(
-                      (cat) => cat.id === parseInt(value.category)
-                    )?.name || "";
+                  // For default categories, check modified categories first
+                  const modifiedCategory = modifiedCategories[value.category];
+                  if (modifiedCategory) {
+                    categoryName = modifiedCategory.name;
+                  } else {
+                    // If not modified, get from expensesCateg
+                    categoryName =
+                      expensesCateg.find(
+                        (cat) => cat.id === parseInt(value.category)
+                      )?.name || "";
+                  }
                 }
               }
 
               return {
                 id,
                 ...value,
-                categoryName: categoryName || "Uncategorized", // Provide default value
+                categoryName: categoryName || "Uncategorized",
               };
             })
           );

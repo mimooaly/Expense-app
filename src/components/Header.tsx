@@ -23,7 +23,7 @@ interface NavLinkProps {
   active?: boolean;
 }
 
-const NavLink = styled(Link, {
+const NavLink = styled(Box, {
   shouldForwardProp: (prop) => prop !== "active",
 })<NavLinkProps>(({ theme, active }) => ({
   textDecoration: "none",
@@ -35,6 +35,7 @@ const NavLink = styled(Link, {
   display: "flex",
   alignItems: "center",
   gap: "8px",
+  cursor: "pointer",
   "&:hover": {
     backgroundColor: "rgba(46, 125, 50, 0.16)",
     color: theme.palette.success.dark,
@@ -74,6 +75,10 @@ const Header: React.FC = () => {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
   const getUserInitials = (displayName: string) => {
     return displayName
       ?.split(" ")
@@ -110,12 +115,13 @@ const Header: React.FC = () => {
       >
         <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: 56 }}>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <Link
-              to="/"
-              style={{
+            <Box
+              onClick={() => handleNavigation("/dashboard")}
+              sx={{
                 textDecoration: "none",
                 display: "flex",
                 alignItems: "center",
+                cursor: "pointer",
               }}
             >
               <img
@@ -130,7 +136,7 @@ const Header: React.FC = () => {
               >
                 Penny Logs
               </Typography>
-            </Link>
+            </Box>
           </Box>
           {!isMobile && (
             <Box
@@ -142,22 +148,22 @@ const Header: React.FC = () => {
               }}
             >
               <NavLink
-                to="/dashboard"
                 active={location.pathname === "/dashboard"}
+                onClick={() => handleNavigation("/dashboard")}
               >
                 <BarChart2 size={20} />
                 <span>Dashboard</span>
               </NavLink>
               <NavLink
-                to="/expenses"
                 active={location.pathname === "/expenses"}
+                onClick={() => handleNavigation("/expenses")}
               >
                 <List size={20} />
                 <span>Expenses</span>
               </NavLink>
               <NavLink
-                to="/settings"
                 active={location.pathname === "/settings"}
+                onClick={() => handleNavigation("/settings")}
               >
                 <Settings size={20} />
                 <span>Settings</span>
@@ -183,7 +189,11 @@ const Header: React.FC = () => {
             </Box>
           )}
           {!user && !isMobile && (
-            <Button color="inherit" component={Link} to="/login">
+            <Button
+              color="inherit"
+              onClick={() => handleNavigation("/login")}
+              sx={{ textDecoration: "none" }}
+            >
               Login
             </Button>
           )}
@@ -222,24 +232,24 @@ const Header: React.FC = () => {
             >
               <Tooltip title="Dashboard" placement="top">
                 <NavLink
-                  to="/dashboard"
                   active={location.pathname === "/dashboard"}
+                  onClick={() => handleNavigation("/dashboard")}
                 >
                   <BarChart2 size={20} />
                 </NavLink>
               </Tooltip>
               <Tooltip title="Expenses" placement="top">
                 <NavLink
-                  to="/expenses"
                   active={location.pathname === "/expenses"}
+                  onClick={() => handleNavigation("/expenses")}
                 >
                   <List size={20} />
                 </NavLink>
               </Tooltip>
               <Tooltip title="Settings" placement="top">
                 <NavLink
-                  to="/settings"
                   active={location.pathname === "/settings"}
+                  onClick={() => handleNavigation("/settings")}
                 >
                   <Settings size={20} />
                 </NavLink>
