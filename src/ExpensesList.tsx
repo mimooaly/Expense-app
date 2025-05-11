@@ -30,6 +30,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Divider,
+  Tooltip,
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -424,6 +425,36 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
       ))}
     </List>
   );
+};
+
+const exportToCSV = (expenses: Expense[], currency: string) => {
+  // Create CSV header
+  const headers = ["Category", "Name", "Amount", "Date", "Monthly"];
+  const csvContent = [
+    headers.join(","),
+    ...expenses.map((expense) =>
+      [
+        expense.categoryName,
+        `"${expense.name}"`,
+        `${expense.amount.toFixed(2)} ${currency}`,
+        new Date(expense.date).toLocaleDateString(),
+        expense.monthly ? "Yes" : "No",
+      ].join(",")
+    ),
+  ].join("\n");
+
+  // Create and trigger download
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `expenses_${new Date().toISOString().split("T")[0]}.csv`
+  );
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 export default function ExpensesList() {
@@ -976,6 +1007,7 @@ export default function ExpensesList() {
               alignItems: "center",
               justifyContent: { xs: "center", sm: "flex-start" },
               width: { xs: "100%", sm: "auto" },
+              gap: 2,
             }}
           >
             <Box className="total-amount-display-wrapper">
@@ -995,6 +1027,19 @@ export default function ExpensesList() {
                 {preferences.defaultCurrency}
               </Typography>
             </Box>
+            {!isMobile && (
+              <Tooltip title="Export to Excel">
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    exportToCSV(filteredExpenses, preferences.defaultCurrency)
+                  }
+                  sx={{ color: "primary.dark", marginBottom: 1 }}
+                >
+                  <FeatherIcons.FileText size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
 
