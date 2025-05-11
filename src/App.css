@@ -161,10 +161,6 @@
 }
 
 /* Amount color in table view */
-.expense-row .MuiTableCell-root:nth-child(3) {
-  color: #8b0000;
-  font-weight: 500;
-}
 
 .expenses-list-mobile {
   padding: 0;

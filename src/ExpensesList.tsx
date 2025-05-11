@@ -31,13 +31,26 @@ import {
   AccordionDetails,
   Divider,
   Tooltip,
+  Checkbox,
+  Toolbar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpensesFilter from "./components/ExpensesFilter";
 import AddExpenseDialog from "./components/AddExpenseDialog";
 import AddIcon from "@mui/icons-material/Add";
-import { Trash2, Edit2 } from "react-feather";
+import {
+  Trash2,
+  Edit2,
+  MoreVertical,
+  Tag,
+  DollarSign,
+  Calendar,
+  RefreshCw,
+} from "react-feather";
 import * as FeatherIcons from "react-feather";
 import expensesCateg from "./data/ExpenseCategories";
 import { onAuthStateChanged } from "firebase/auth";
@@ -45,6 +58,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCategories } from "./hooks/useCategories";
 import RecurringExpensesDialog from "./components/RecurringExpensesDialog";
 import { useUserPreferences } from "./hooks/useUserPreferences";
+import BulkActionsToolbar from "./components/BulkActionsToolbar";
+import BulkEditDialogs from "./components/BulkEditDialogs";
 
 export interface Expense {
   id: string;
@@ -64,6 +79,9 @@ interface ExpensesTableProps {
   expenses: Expense[];
   onDelete: (id: string) => void;
   onEdit: (expense: Expense) => void;
+  selected: string[];
+  onSelect: (id: string) => void;
+  onSelectAll?: () => void;
 }
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -100,7 +118,7 @@ const headCells = [
   { id: "name", label: "Name" },
   { id: "amount", label: "Amount" },
   { id: "date", label: "Date" },
-  { id: "monthly", label: "Monthly" },
+  { id: "monthly", label: "Recurring" },
   { id: "actions", label: "Actions" },
 ];
 
@@ -108,6 +126,9 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   expenses,
   onDelete,
   onEdit,
+  selected,
+  onSelect,
+  onSelectAll,
 }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<keyof Expense>("date");
@@ -163,6 +184,17 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
       <Table>
         <TableHead>
           <TableRow>
+            <TableCell padding="checkbox">
+              <Checkbox
+                indeterminate={
+                  selected.length > 0 && selected.length < expenses.length
+                }
+                checked={
+                  expenses.length > 0 && selected.length === expenses.length
+                }
+                onChange={onSelectAll}
+              />
+            </TableCell>
             {headCells.map((headCell) => (
               <TableCell
                 key={headCell.id}
@@ -193,6 +225,12 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
                 idx % 2 === 0 ? "expense-row-even" : "expense-row-odd"
               }`}
             >
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={selected.includes(expense.id)}
+                  onChange={() => onSelect(expense.id)}
+                />
+              </TableCell>
               <TableCell>
                 <Box display="flex" alignItems="center">
                   {getCategoryIcon(expense.category)}
@@ -201,8 +239,10 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
                   </span>
                 </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>{expense.name}</TableCell>
-              <TableCell>
+              <TableCell sx={{ fontWeight: 700, color: "#000000" }}>
+                {expense.name}
+              </TableCell>
+              <TableCell sx={{ color: "#8b0000", fontWeight: 500 }}>
                 {expense.amount.toFixed(2)} {preferences.defaultCurrency}
               </TableCell>
               <TableCell>
@@ -229,6 +269,9 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   expenses,
   onDelete,
   onEdit,
+  selected,
+  onSelect,
+  onSelectAll,
 }) => {
   const categories = useCategories();
   const { preferences } = useUserPreferences();
@@ -272,13 +315,40 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   return (
     <List className="expenses-list-mobile">
       {expenses.map((expense) => (
-        <ListItem key={expense.id} divider className="expense-list-item-mobile">
+        <ListItem
+          key={expense.id}
+          divider
+          className="expense-list-item-mobile"
+          secondaryAction={
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <IconButton edge="end" onClick={() => onEdit(expense)}>
+                <Edit2 size={16} />
+              </IconButton>
+              <IconButton edge="end" onClick={() => onDelete(expense.id)}>
+                <Trash2 size={16} />
+              </IconButton>
+            </Box>
+          }
+        >
+          <Checkbox
+            checked={selected.includes(expense.id)}
+            onChange={() => onSelect(expense.id)}
+            sx={{ mr: 1 }}
+          />
           <ListItemText
             primary={
               <div className="expense-list-item-mobile-primary">
                 <Box display="flex" alignItems="center">
                   {getCategoryIcon(expense.category)}
-                  <span className="expense-list-item-mobile-name">
+                  <span
+                    className="expense-list-item-mobile-name"
+                    style={{
+                      maxWidth: "150px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {expense.name}
                   </span>
                 </Box>
@@ -300,14 +370,6 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
               </>
             }
           />
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton edge="end" onClick={() => onEdit(expense)}>
-              <Edit2 size={16} />
-            </IconButton>
-            <IconButton edge="end" onClick={() => onDelete(expense.id)}>
-              <Trash2 size={16} />
-            </IconButton>
-          </Box>
         </ListItem>
       ))}
     </List>
@@ -358,6 +420,17 @@ export default function ExpensesList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkActionAnchor, setBulkActionAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [isBulkCategoryDialogOpen, setIsBulkCategoryDialogOpen] =
+    useState(false);
+  const [isBulkAmountDialogOpen, setIsBulkAmountDialogOpen] = useState(false);
+  const [isBulkDateDialogOpen, setIsBulkDateDialogOpen] = useState(false);
+  const [isBulkRecurringDialogOpen, setIsBulkRecurringDialogOpen] =
+    useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const categories = useCategories();
   const { preferences } = useUserPreferences();
 
@@ -749,6 +822,141 @@ export default function ExpensesList() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleSelect = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelected((prev) =>
+      prev.length === filteredExpenses.length
+        ? []
+        : filteredExpenses.map((exp) => exp.id)
+    );
+  };
+
+  const handleBulkActionClick = (event: React.MouseEvent<HTMLElement>) => {
+    setBulkActionAnchor(event.currentTarget);
+  };
+
+  const handleBulkActionClose = () => {
+    setBulkActionAnchor(null);
+  };
+
+  const handleBulkCategoryChange = async (categoryId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/category`] = categoryId;
+      });
+      await update(ref(database), updates);
+      setIsBulkCategoryDialogOpen(false);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating categories:", error);
+    }
+  };
+
+  const handleBulkAmountChange = async (amount: number) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/amount`] = amount;
+      });
+      await update(ref(database), updates);
+      setIsBulkAmountDialogOpen(false);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating amounts:", error);
+    }
+  };
+
+  const handleBulkDateChange = async (date: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/date`] = date;
+      });
+      await update(ref(database), updates);
+      setIsBulkDateDialogOpen(false);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating dates:", error);
+    }
+  };
+
+  const handleBulkRecurringChange = async (isRecurring: boolean) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/monthly`] = isRecurring;
+      });
+      await update(ref(database), updates);
+      setIsBulkRecurringDialogOpen(false);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating recurring status:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}`] = null;
+      });
+      await update(ref(database), updates);
+      setIsBulkDeleteDialogOpen(false);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error deleting expenses:", error);
+    }
+  };
+
+  const getCategoryIcon = (iconName: string) => {
+    if (iconName === "folder") {
+      return (
+        <FeatherIcons.Folder
+          size={20}
+          style={{ marginRight: 8, verticalAlign: "middle" }}
+        />
+      );
+    }
+
+    let featherIconName;
+    if (iconName === "github") {
+      featherIconName = "GitHub";
+    } else {
+      featherIconName = iconName
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+    }
+    const IconComponent = (FeatherIcons as any)[featherIconName];
+    return IconComponent ? (
+      <IconComponent
+        size={20}
+        style={{ marginRight: 8, verticalAlign: "middle" }}
+      />
+    ) : null;
+  };
+
   return (
     <Container
       maxWidth="lg"
@@ -873,6 +1081,7 @@ export default function ExpensesList() {
             justifyContent: "space-between",
             alignItems: { xs: "stretch", sm: "center" },
             gap: { xs: 2, sm: 0 },
+            mb: 2,
           }}
         >
           {!isMobile && (
@@ -946,6 +1155,39 @@ export default function ExpensesList() {
           </Box>
         </Box>
 
+        {selected.length > 0 && (
+          <BulkActionsToolbar
+            selectedCount={selected.length}
+            totalCount={filteredExpenses.length}
+            onBulkActionClick={handleBulkActionClick}
+            onBulkActionClose={handleBulkActionClose}
+            onCategoryClick={() => setIsBulkCategoryDialogOpen(true)}
+            onAmountClick={() => setIsBulkAmountDialogOpen(true)}
+            onDateClick={() => setIsBulkDateDialogOpen(true)}
+            onRecurringClick={() => setIsBulkRecurringDialogOpen(true)}
+            onDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
+            onSelectAll={handleSelectAll}
+            anchorEl={bulkActionAnchor}
+          />
+        )}
+
+        <BulkEditDialogs
+          isCategoryDialogOpen={isBulkCategoryDialogOpen}
+          isAmountDialogOpen={isBulkAmountDialogOpen}
+          isDateDialogOpen={isBulkDateDialogOpen}
+          isRecurringDialogOpen={isBulkRecurringDialogOpen}
+          onCategoryDialogClose={() => setIsBulkCategoryDialogOpen(false)}
+          onAmountDialogClose={() => setIsBulkAmountDialogOpen(false)}
+          onDateDialogClose={() => setIsBulkDateDialogOpen(false)}
+          onRecurringDialogClose={() => setIsBulkRecurringDialogOpen(false)}
+          onCategoryChange={handleBulkCategoryChange}
+          onAmountChange={handleBulkAmountChange}
+          onDateChange={handleBulkDateChange}
+          onRecurringChange={handleBulkRecurringChange}
+          categories={categories}
+          getCategoryIcon={getCategoryIcon}
+        />
+
         {filteredExpenses.length === 0 ? (
           <Box sx={{ textAlign: "center", mt: 4 }}>
             <img src={emptyImage} alt="No expenses" style={{ width: 200 }} />
@@ -958,12 +1200,18 @@ export default function ExpensesList() {
             expenses={filteredExpenses}
             onDelete={handleDeleteClick}
             onEdit={handleEditClick}
+            selected={selected}
+            onSelect={handleSelect}
+            onSelectAll={handleSelectAll}
           />
         ) : (
           <ExpensesTable
             expenses={filteredExpenses}
             onDelete={handleDeleteClick}
             onEdit={handleEditClick}
+            selected={selected}
+            onSelect={handleSelect}
+            onSelectAll={handleSelectAll}
           />
         )}
 
@@ -1004,6 +1252,27 @@ export default function ExpensesList() {
           onDisableRecurring={handleDisableRecurring}
           isExpenseInCurrentMonth={isExpenseInCurrentMonth}
         />
+
+        <Dialog
+          open={isBulkDeleteDialogOpen}
+          onClose={() => setIsBulkDeleteDialogOpen(false)}
+        >
+          <DialogTitle>Delete Selected Expenses</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete {selected.length} selected expense
+              {selected.length !== 1 ? "s" : ""}? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsBulkDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkDelete} color="error">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );
