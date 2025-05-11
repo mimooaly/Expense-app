@@ -35,7 +35,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" className="marginContainer">
       <img src="/Logo.png" alt="Logo" style={{ width: 120, marginBottom: 1 }} />
       <Box
         component={Paper}
