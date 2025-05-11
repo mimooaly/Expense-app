@@ -48,7 +48,7 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
       <DialogTitle>Recurring Expenses</DialogTitle>
       <DialogContent
         sx={{
-          px: { xs: 1, sm: 3 },
+          px: { xs: 3, sm: 3 },
           py: { xs: 1, sm: 2 },
         }}
       >
@@ -78,7 +78,7 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
                 {recurringExpenses.map((exp) => {
                   const existsInCurrentMonth = isExpenseInCurrentMonth(exp);
                   return (
-                    <Paper key={exp.id} sx={{ mb: 2, p: 2 }} elevation={2}>
+                    <Paper key={exp.id} sx={{ mb: 2, p: 3 }} elevation={2}>
                       <Box
                         sx={{
                           display: "flex",
