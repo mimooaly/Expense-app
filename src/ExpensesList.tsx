@@ -424,6 +424,8 @@ export default function ExpensesList() {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [isToolbarFixed, setIsToolbarFixed] = useState(false);
+  const tableHeaderRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchExpenses = (user: any) => {
@@ -539,6 +541,19 @@ export default function ExpensesList() {
       if (unsubscribe) unsubscribe();
       unsubscribeAuth();
     };
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (tableHeaderRef.current) {
+        const headerBottom =
+          tableHeaderRef.current.getBoundingClientRect().bottom;
+        setIsToolbarFixed(headerBottom < 0);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleAddExpense = async (values: any) => {
@@ -1004,8 +1019,11 @@ export default function ExpensesList() {
     <Container
       maxWidth="lg"
       className="page-glossy-background, marginContainer"
+      sx={{ position: "relative", height: "100%" }}
     >
-      <Box sx={{ my: 4 }}>
+      <Box
+        sx={{ my: 4, display: "flex", flexDirection: "column", height: "100%" }}
+      >
         <Box
           sx={{
             display: "flex",
@@ -1039,224 +1057,234 @@ export default function ExpensesList() {
           </Box>
         </Box>
 
-        {isMobile ? (
-          <Accordion
-            sx={{
-              mb: 2,
-              boxShadow: "none",
-              "&:before": { display: "none" },
-              border: "1px solid rgba(0, 0, 0, 0.12)",
-              borderRadius: 1,
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              aria-controls="filters-search-panel-content"
-              id="filters-search-panel-header"
-            >
-              <Typography>Filters & Search</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                  padding: 1,
-                }}
-              >
-                <TextField
-                  fullWidth
-                  placeholder="Search expenses..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  sx={{
-                    marginBottom: 1,
-                  }}
-                  size="small"
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <FeatherIcons.Search
-                          size={20}
-                          style={{ marginRight: 8 }}
-                        />
-                      ),
-                    },
-                  }}
-                />
-                <ExpensesFilter
-                  category={filters.category}
-                  month={filters.month}
-                  year={filters.year}
-                  categories={categories}
-                  onCategoryChange={(category) =>
-                    setFilters({ ...filters, category })
-                  }
-                  onMonthChange={(month) => setFilters({ ...filters, month })}
-                  onYearChange={(year) => setFilters({ ...filters, year })}
-                />
-              </Box>
-            </AccordionDetails>
-          </Accordion>
-        ) : (
-          <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              placeholder="Search expenses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <FeatherIcons.Search size={20} style={{ marginRight: 8 }} />
-                  ),
-                },
+        <Box ref={tableHeaderRef}>
+          {isMobile ? (
+            <Accordion
+              sx={{
+                mb: 2,
+                boxShadow: "none",
+                "&:before": { display: "none" },
+                border: "1px solid rgba(0, 0, 0, 0.12)",
+                borderRadius: 1,
               }}
-            />
-          </Box>
-        )}
-
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            justifyContent: "space-between",
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: 2, sm: 0 },
-            mb: 2,
-          }}
-        >
-          {!isMobile && (
-            <ExpensesFilter
-              category={filters.category}
-              month={filters.month}
-              year={filters.year}
-              categories={categories}
-              onCategoryChange={(category) =>
-                setFilters({ ...filters, category })
-              }
-              onMonthChange={(month) => setFilters({ ...filters, month })}
-              onYearChange={(year) => setFilters({ ...filters, year })}
-            />
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="filters-search-panel-content"
+                id="filters-search-panel-header"
+              >
+                <Typography>Filters & Search</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    padding: 1,
+                  }}
+                >
+                  <TextField
+                    fullWidth
+                    placeholder="Search expenses..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{
+                      marginBottom: 1,
+                    }}
+                    size="small"
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <FeatherIcons.Search
+                            size={20}
+                            style={{ marginRight: 8 }}
+                          />
+                        ),
+                      },
+                    }}
+                  />
+                  <ExpensesFilter
+                    category={filters.category}
+                    month={filters.month}
+                    year={filters.year}
+                    categories={categories}
+                    onCategoryChange={(category) =>
+                      setFilters({ ...filters, category })
+                    }
+                    onMonthChange={(month) => setFilters({ ...filters, month })}
+                    onYearChange={(year) => setFilters({ ...filters, year })}
+                  />
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          ) : (
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                placeholder="Search expenses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <FeatherIcons.Search
+                        size={20}
+                        style={{ marginRight: 8 }}
+                      />
+                    ),
+                  },
+                }}
+              />
+            </Box>
           )}
+
           <Box
             sx={{
               display: "flex",
-              alignItems: "center",
-              justifyContent: { xs: "center", sm: "flex-start" },
-              width: { xs: "100%", sm: "auto" },
-              gap: 2,
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "space-between",
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: { xs: 2, sm: 0 },
+              mb: 2,
             }}
           >
-            <Box className="total-amount-display-wrapper">
-              <Divider className="total-amount-divider" />
-              <Typography
-                className="total-amount-display"
-                variant="body2"
-                fontWeight="bold"
-              >
-                Total{" "}
-                {filteredExpenses
-                  .reduce((sum, exp) => sum + exp.amount, 0)
-                  .toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                {preferences.defaultCurrency}
-              </Typography>
-            </Box>
             {!isMobile && (
-              <Tooltip title="Export to Excel">
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={() =>
-                    exportToCSV(filteredExpenses, preferences.defaultCurrency)
-                  }
-                  sx={{
-                    color: "primary.dark",
-                    marginBottom: 1,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <FeatherIcons.FileText size={18} />
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: "0.875rem",
-                        width: "100px",
-                        marginRight: "20px",
-                      }}
-                    >
-                      Export CSV
-                    </Typography>
-                  </Box>
-                </Button>
-              </Tooltip>
+              <ExpensesFilter
+                category={filters.category}
+                month={filters.month}
+                year={filters.year}
+                categories={categories}
+                onCategoryChange={(category) =>
+                  setFilters({ ...filters, category })
+                }
+                onMonthChange={(month) => setFilters({ ...filters, month })}
+                onYearChange={(year) => setFilters({ ...filters, year })}
+              />
             )}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: { xs: "center", sm: "flex-start" },
+                width: { xs: "100%", sm: "auto" },
+                gap: 2,
+              }}
+            >
+              <Box className="total-amount-display-wrapper">
+                <Divider className="total-amount-divider" />
+                <Typography
+                  className="total-amount-display"
+                  variant="body2"
+                  fontWeight="bold"
+                >
+                  Total{" "}
+                  {filteredExpenses
+                    .reduce((sum, exp) => sum + exp.amount, 0)
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                  {preferences.defaultCurrency}
+                </Typography>
+              </Box>
+              {!isMobile && (
+                <Tooltip title="Export to Excel">
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() =>
+                      exportToCSV(filteredExpenses, preferences.defaultCurrency)
+                    }
+                    sx={{
+                      color: "primary.dark",
+                      marginBottom: 1,
+                    }}
+                  >
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FeatherIcons.FileText size={18} />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: "0.875rem",
+                          width: "100px",
+                          marginRight: "20px",
+                        }}
+                      >
+                        Export CSV
+                      </Typography>
+                    </Box>
+                  </Button>
+                </Tooltip>
+              )}
+            </Box>
           </Box>
         </Box>
 
         {selected.length > 0 && (
-          <BulkActionsToolbar
-            selectedCount={selected.length}
-            totalCount={filteredExpenses.length}
-            onBulkActionClick={handleBulkActionClick}
-            onBulkActionClose={handleBulkActionClose}
-            onCategoryClick={() => setIsBulkCategoryDialogOpen(true)}
-            onAmountClick={() => setIsBulkAmountDialogOpen(true)}
-            onDateClick={() => setIsBulkDateDialogOpen(true)}
-            onRecurringClick={() => setIsBulkRecurringDialogOpen(true)}
-            onDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
-            onSelectAll={handleSelectAll}
-            anchorEl={bulkActionAnchor}
-          />
-        )}
-
-        <BulkEditDialogs
-          isCategoryDialogOpen={isBulkCategoryDialogOpen}
-          isAmountDialogOpen={isBulkAmountDialogOpen}
-          isDateDialogOpen={isBulkDateDialogOpen}
-          isRecurringDialogOpen={isBulkRecurringDialogOpen}
-          onCategoryDialogClose={() => setIsBulkCategoryDialogOpen(false)}
-          onAmountDialogClose={() => setIsBulkAmountDialogOpen(false)}
-          onDateDialogClose={() => setIsBulkDateDialogOpen(false)}
-          onRecurringDialogClose={() => setIsBulkRecurringDialogOpen(false)}
-          onCategoryChange={handleBulkCategoryChange}
-          onAmountChange={handleBulkAmountChange}
-          onDateChange={handleBulkDateChange}
-          onRecurringChange={handleBulkRecurringChange}
-          categories={categories}
-          getCategoryIcon={getCategoryIcon}
-        />
-
-        {filteredExpenses.length === 0 ? (
-          <Box sx={{ textAlign: "center", mt: 4 }}>
-            <img src={emptyImage} alt="No expenses" style={{ width: 200 }} />
-            <Typography variant="h6" sx={{ mt: 2 }}>
-              No expenses found
-            </Typography>
+          <Box
+            sx={{
+              position: isToolbarFixed ? "fixed" : "relative",
+              top: isToolbarFixed ? { xs: 55, sm: 64 } : 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              transition: "all 0.2s ease-in-out",
+              marginBottom: 2,
+              paddingLeft: 0,
+            }}
+          >
+            <Container maxWidth="lg" sx={{ px: { xs: 0, sm: 0 } }}>
+              <BulkActionsToolbar
+                selectedCount={selected.length}
+                totalCount={filteredExpenses.length}
+                onBulkActionClick={handleBulkActionClick}
+                onBulkActionClose={handleBulkActionClose}
+                onCategoryClick={() => setIsBulkCategoryDialogOpen(true)}
+                onAmountClick={() => setIsBulkAmountDialogOpen(true)}
+                onDateClick={() => setIsBulkDateDialogOpen(true)}
+                onRecurringClick={() => setIsBulkRecurringDialogOpen(true)}
+                onDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
+                onSelectAll={handleSelectAll}
+                anchorEl={bulkActionAnchor}
+              />
+            </Container>
           </Box>
-        ) : isMobile ? (
-          <ExpensesListMobile
-            expenses={filteredExpenses}
-            onDelete={handleDeleteClick}
-            onEdit={handleEditClick}
-            selected={selected}
-            onSelect={handleSelect}
-            onSelectAll={handleSelectAll}
-          />
-        ) : (
-          <ExpensesTable
-            expenses={filteredExpenses}
-            onDelete={handleDeleteClick}
-            onEdit={handleEditClick}
-            selected={selected}
-            onSelect={handleSelect}
-            onSelectAll={handleSelectAll}
-          />
         )}
+
+        <Box sx={{ mt: selected.length > 0 && isToolbarFixed ? "48px" : 0 }}>
+          {filteredExpenses.length === 0 ? (
+            <Box sx={{ textAlign: "center", mt: 4 }}>
+              <img src={emptyImage} alt="No expenses" style={{ width: 200 }} />
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                No expenses found
+              </Typography>
+            </Box>
+          ) : isMobile ? (
+            <ExpensesListMobile
+              expenses={filteredExpenses}
+              onDelete={handleDeleteClick}
+              onEdit={handleEditClick}
+              selected={selected}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+            />
+          ) : (
+            <ExpensesTable
+              expenses={filteredExpenses}
+              onDelete={handleDeleteClick}
+              onEdit={handleEditClick}
+              selected={selected}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+            />
+          )}
+        </Box>
 
         <AddExpenseDialog
           open={isAddDialogOpen}
@@ -1316,6 +1344,23 @@ export default function ExpensesList() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <BulkEditDialogs
+          isCategoryDialogOpen={isBulkCategoryDialogOpen}
+          isAmountDialogOpen={isBulkAmountDialogOpen}
+          isDateDialogOpen={isBulkDateDialogOpen}
+          isRecurringDialogOpen={isBulkRecurringDialogOpen}
+          onCategoryDialogClose={() => setIsBulkCategoryDialogOpen(false)}
+          onAmountDialogClose={() => setIsBulkAmountDialogOpen(false)}
+          onDateDialogClose={() => setIsBulkDateDialogOpen(false)}
+          onRecurringDialogClose={() => setIsBulkRecurringDialogOpen(false)}
+          onCategoryChange={handleBulkCategoryChange}
+          onAmountChange={handleBulkAmountChange}
+          onDateChange={handleBulkDateChange}
+          onRecurringChange={handleBulkRecurringChange}
+          categories={categories}
+          getCategoryIcon={getCategoryIcon}
+        />
       </Box>
     </Container>
   );

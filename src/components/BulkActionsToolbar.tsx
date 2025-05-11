@@ -55,17 +55,16 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   return (
     <Toolbar
       sx={{
-        pl: { sm: 1 },
-        pr: { xs: 1, sm: 1 },
-        py: 0.5,
+        pl: 1,
+        pr: 1,
+        py: 1,
         minHeight: "48px !important",
-        bgcolor: "background.paper",
-        border: "1px solid",
         borderColor: "divider",
-        borderRadius: 1,
-        mb: 2,
         display: "flex",
         justifyContent: "space-between",
+        width: "100%",
+        backdropFilter: "blur(8px)",
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
