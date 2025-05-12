@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
+import { HelmetProvider } from "react-helmet-async";
 import Login from "./Login";
 import Register from "./Register";
 import Dashboard from "./Dashboard";
@@ -28,23 +29,25 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <GoogleAnalytics />
-        <Header />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/expenses" element={<ExpensesList />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Router>
-      <Analytics />
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <GoogleAnalytics />
+          <Header />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/expenses" element={<ExpensesList />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </Router>
+        <Analytics />
+      </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

@@ -35,7 +35,7 @@ import "slick-carousel/slick/slick-theme.css";
 import Flag from "react-world-flags";
 import { currencyOptions } from "./data/currencyOptions";
 import theme from "./theme";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 
 interface NavLinkProps {
   active?: boolean;

@@ -23,7 +23,7 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "react-feather": "^2.0.10",
-    "react-helmet": "^6.1.0",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.5.3",
     "react-slick": "^0.30.3",
     "react-world-flags": "^1.6.0",
@@ -32,6 +32,7 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@eslint/js": "^9.22.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
