@@ -307,10 +307,10 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
                   <span
                     className="expense-list-item-mobile-name"
                     style={{
-                      maxWidth: "150px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      maxWidth: "100%",
+                      whiteSpace: "normal",
+                      overflow: "visible",
+                      textOverflow: "clip",
                     }}
                   >
                     {expense.name}
@@ -320,16 +320,19 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
             }
             secondary={
               <>
-                <span className="expense-list-item-mobile-amount">
+                <span className="expense-list-item-mobile-secondary">
+                  {getCategoryName(expense.category)} •{" "}
+                  {new Date(expense.date).toLocaleDateString()}
+                </span>
+                <span
+                  className="expense-list-item-mobile-amount"
+                  style={{ display: "block", marginTop: 4 }}
+                >
                   {expense.amount.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{" "}
                   {preferences.defaultCurrency}
-                </span>
-                <span className="expense-list-item-mobile-secondary">
-                  {getCategoryName(expense.category)} •{" "}
-                  {new Date(expense.date).toLocaleDateString()}
                 </span>
               </>
             }

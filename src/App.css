@@ -198,17 +198,15 @@
 
 .expense-list-item-mobile-amount {
   color: #8b0000;
-  margin-left: 12px;
-  position: absolute;
-  top: 24px;
-  right: 75px;
-  text-align: right;
-  background-color: #fff;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
 }
 
 .expense-list-item-mobile-secondary {
   color: #666;
   font-size: 0.95em;
+  display: block;
 }
 
 .total-amount-display {
