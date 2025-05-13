@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { ref, onValue } from "firebase/database";
 import { database, auth } from "../firebaseConfig";
 import expensesCateg from "../data/ExpenseCategories";
+import React from "react";
 
 export interface Category {
   id: string;
@@ -10,7 +11,15 @@ export interface Category {
   isCustom?: boolean;
 }
 
-export function useCategories(hiddenCategories: string[] = []) {
+export interface UseCategoriesReturn {
+  categories: Category[];
+  getCategoryIcon: (categoryId: string) => React.ReactElement | null;
+  getCategoryName: (categoryId: string) => string;
+  getCategoryById: (categoryId: string) => Category | undefined;
+  loading: boolean;
+}
+
+export function useCategories(hiddenCategories: string[] = []): UseCategoriesReturn {
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
   const [modifiedCategories, setModifiedCategories] = useState<Record<string, any>>({});
 
@@ -76,5 +85,31 @@ export function useCategories(hiddenCategories: string[] = []) {
     });
   }, [customCategories, modifiedCategories, hiddenCategories]);
 
-  return categories;
+  const getCategoryIcon = (categoryId: string): React.ReactElement | null => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return null;
+    return React.createElement('span', {
+      style: { fontSize: 20, marginRight: 8, verticalAlign: 'middle' },
+      children: category.icon
+    });
+  };
+
+  const getCategoryName = (categoryId: string): string => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : 'Uncategorized';
+  };
+
+  const getCategoryById = (categoryId: string): Category | undefined => {
+    return categories.find(cat => cat.id === categoryId);
+  };
+
+  const loading = false; // Implementation of loading
+
+  return {
+    categories,
+    getCategoryIcon,
+    getCategoryName,
+    getCategoryById,
+    loading,
+  };
 } 

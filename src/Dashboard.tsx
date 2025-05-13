@@ -111,7 +111,7 @@ const DashboardPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { preferences } = useUserPreferences();
-  const categories = useCategories(preferences.hiddenCategories || []);
+  const { categories } = useCategories(preferences.hiddenCategories || []);
   const [lineChartKey, setLineChartKey] = useState(0);
   const [pieChartKey, setPieChartKey] = useState(0);
   const [hiddenCategories, setHiddenCategories] = useState<string[]>([]);
@@ -274,7 +274,7 @@ const DashboardPage: React.FC = () => {
         const category = categories.find((cat) => cat.name === name);
         return {
           name,
-          icon: category ? category.icon : "box",
+          icon: category ? category.icon : "💰",
           value: Number(value),
         };
       })

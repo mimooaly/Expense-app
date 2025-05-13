@@ -25,7 +25,7 @@ import {
 import theme from "./theme";
 import { useState } from "react";
 import { Edit2, Trash2, X } from "react-feather";
-import { useCategories } from "./hooks/useCategories";
+import { useCategories, UseCategoriesReturn } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, push, remove, update, set, get } from "firebase/database";
 import { useUserPreferences } from "./hooks/useUserPreferences";
@@ -48,7 +48,9 @@ const Settings = () => {
     updatePreferences,
     hideCategory,
   } = useUserPreferences();
-  const categories = useCategories(preferences.hiddenCategories || []);
+  const { categories }: UseCategoriesReturn = useCategories(
+    preferences.hiddenCategories || []
+  );
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -326,7 +328,7 @@ const Settings = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {categories.map((category) => (
+                  {categories.map((category: Category) => (
                     <TableRow key={category.id}>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center" }}>

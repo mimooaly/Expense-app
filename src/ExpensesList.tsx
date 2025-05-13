@@ -134,7 +134,7 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
 }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<keyof Expense>("date");
-  const categories = useCategories();
+  const { categories, getCategoryIcon } = useCategories();
   const { preferences } = useUserPreferences();
 
   const handleRequestSort = (property: keyof Expense) => {
@@ -144,16 +144,6 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   };
 
   const sortedExpenses = stableSort(expenses, getComparator(order, orderBy));
-
-  const getCategoryIcon = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    if (!category) return null;
-    return (
-      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
-        {category.icon}
-      </span>
-    );
-  };
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
@@ -253,23 +243,13 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   selected,
   onSelect,
 }) => {
-  const categories = useCategories();
+  const { categories, getCategoryIcon } = useCategories();
   const { preferences } = useUserPreferences();
 
   // Sort expenses by date in descending order (most recent first)
   const sortedExpenses = [...expenses].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-
-  const getCategoryIcon = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    if (!category) return null;
-    return (
-      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
-        {category.icon}
-      </span>
-    );
-  };
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
@@ -396,7 +376,6 @@ const ExpensesList: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isRecurringExpense, setIsRecurringExpense] = useState(false);
@@ -408,7 +387,9 @@ const ExpensesList: React.FC = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [extraCategoryNames, setExtraCategoryNames] = useState<string[]>([]);
   const { preferences } = useUserPreferences();
-  const categories = useCategories(preferences.hiddenCategories || []);
+  const { categories, getCategoryIcon } = useCategories(
+    preferences.hiddenCategories || []
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isToolbarFixed, setIsToolbarFixed] = useState(false);
   const tableHeaderRef = useRef<HTMLDivElement>(null);
@@ -1021,33 +1002,6 @@ const ExpensesList: React.FC = () => {
         ? []
         : filteredExpenses.map((exp) => exp.id)
     );
-  };
-
-  const getCategoryIcon = (iconName: string) => {
-    if (iconName === "folder") {
-      return (
-        <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
-          {iconName}
-        </span>
-      );
-    }
-
-    let featherIconName;
-    if (iconName === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = iconName
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={20}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
   };
 
   return (

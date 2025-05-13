@@ -10,6 +10,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import { Category } from "../hooks/useCategories";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useCategories } from "../hooks/useCategories";
 
 interface BulkEditDialogsProps {
   isCategoryDialogOpen: boolean;
@@ -41,7 +43,6 @@ const BulkEditDialogs: React.FC<BulkEditDialogsProps> = ({
   onAmountChange,
   onDateChange,
   onRecurringChange,
-  categories,
   getCategoryIcon,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -49,6 +50,11 @@ const BulkEditDialogs: React.FC<BulkEditDialogsProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedRecurring, setSelectedRecurring] = useState<boolean | null>(
     null
+  );
+
+  const { preferences } = useUserPreferences();
+  const { categories: userCategories } = useCategories(
+    preferences.hiddenCategories || []
   );
 
   const handleCategoryConfirm = () => {
@@ -96,7 +102,7 @@ const BulkEditDialogs: React.FC<BulkEditDialogsProps> = ({
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
-            {categories.map((category) => (
+            {userCategories.map((category) => (
               <MenuItem key={category.id} value={category.id}>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   {getCategoryIcon(category.icon)}

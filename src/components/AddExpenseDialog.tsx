@@ -39,8 +39,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   emptyExpense,
 }) => {
   const [error, setError] = useState("");
-  const categories = useCategories();
   const { preferences } = useUserPreferences();
+  const { categories } = useCategories(preferences.hiddenCategories || []);
   const [usdAmount, setUsdAmount] = useState<number | null>(null);
   const [converting, setConverting] = useState(false);
 

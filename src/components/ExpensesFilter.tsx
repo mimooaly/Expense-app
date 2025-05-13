@@ -1,5 +1,7 @@
 import React from "react";
 import { Box, TextField, MenuItem, CircularProgress } from "@mui/material";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useCategories } from "../hooks/useCategories";
 
 interface Category {
   id: string;
@@ -23,13 +25,17 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
   category,
   month,
   year,
-  categories,
   extraCategoryNames = [],
   onCategoryChange,
   onMonthChange,
   onYearChange,
 }) => {
-  if (!categories || categories.length === 0) {
+  const { preferences } = useUserPreferences();
+  const { categories: userCategories } = useCategories(
+    preferences.hiddenCategories || []
+  );
+
+  if (!userCategories || userCategories.length === 0) {
     return (
       <Box
         sx={{
@@ -45,18 +51,18 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
   }
 
   const months = [
-    "January",
-    "February",
-    "March",
-    "April",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
     "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
 
   const years = Array.from(
@@ -90,7 +96,7 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         sx={{ minWidth: { sm: 120 }, width: { xs: "100%", sm: "auto" } }}
       >
         <MenuItem value="">All</MenuItem>
-        {categories.map((cat) => (
+        {userCategories.map((cat) => (
           <MenuItem key={cat.id} value={cat.id}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {getCategoryIcon(cat)}
@@ -100,7 +106,9 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         ))}
         {/* Extra category names for backward compatibility - only show if not in main categories */}
         {extraCategoryNames
-          .filter((catName) => !categories.some((cat) => cat.name === catName))
+          .filter(
+            (catName) => !userCategories.some((cat) => cat.name === catName)
+          )
           .map((catName) => (
             <MenuItem key={catName} value={catName}>
               <Box sx={{ display: "flex", alignItems: "center" }}>

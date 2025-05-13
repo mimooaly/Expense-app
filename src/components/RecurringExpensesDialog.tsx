@@ -36,17 +36,9 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
   isExpenseInCurrentMonth,
 }) => {
   const { preferences } = useUserPreferences();
-  const categories = useCategories(preferences.hiddenCategories || []);
-
-  const getCategoryIcon = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    if (!category) return null;
-    return (
-      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
-        {category.icon}
-      </span>
-    );
-  };
+  const { categories, getCategoryIcon } = useCategories(
+    preferences.hiddenCategories || []
+  );
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
