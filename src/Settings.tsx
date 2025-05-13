@@ -98,6 +98,14 @@ const Settings = () => {
     }
   };
 
+  const handleEditClick = (category: Category) => {
+    setSelectedCategory({
+      ...category,
+      emoji: category.icon,
+    });
+    setIsEditDialogOpen(true);
+  };
+
   const handleEditCategory = async (category: Category) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -332,10 +340,7 @@ const Settings = () => {
                       <TableCell>
                         <IconButton
                           className="categActionButton"
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            setIsEditDialogOpen(true);
-                          }}
+                          onClick={() => handleEditClick(category)}
                         >
                           <Edit2 size={16} />
                         </IconButton>
