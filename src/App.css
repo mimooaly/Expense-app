@@ -172,8 +172,7 @@
 }
 .expense-list-item-mobile {
   align-items: flex-start;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding: 12px 16px;
   background: #fff;
   border-radius: 12px;
   margin-bottom: 12px;
@@ -188,12 +187,22 @@
 .expense-list-item-mobile-primary {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .expense-list-item-mobile-name {
   font-weight: 600;
   font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.expense-list-item-mobile-secondary {
+  color: #666;
+  font-size: 0.95em;
+  display: block;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 .expense-list-item-mobile-amount {
@@ -201,12 +210,7 @@
   font-weight: 500;
   display: block;
   margin-top: 4px;
-}
-
-.expense-list-item-mobile-secondary {
-  color: #666;
-  font-size: 0.95em;
-  display: block;
+  line-height: 1.4;
 }
 
 .total-amount-display {
@@ -294,6 +298,36 @@
   .total-amount-display-wrapper {
     top: 32%;
     left: 50%;
+  }
+}
+
+/* Safari Mobile Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+  .expense-list-item-mobile {
+    -webkit-padding-start: 16px;
+    -webkit-padding-end: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .expense-list-item-mobile-primary {
+    -webkit-align-items: flex-start;
+    align-items: flex-start;
+  }
+
+  .expense-list-item-mobile-name {
+    -webkit-line-height: 1.4;
+    line-height: 1.4;
+  }
+
+  .expense-list-item-mobile-secondary {
+    -webkit-line-height: 1.4;
+    line-height: 1.4;
+  }
+
+  .expense-list-item-mobile-amount {
+    -webkit-line-height: 1.4;
+    line-height: 1.4;
   }
 }
 

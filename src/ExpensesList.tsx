@@ -322,7 +322,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
               <>
                 <span className="expense-list-item-mobile-secondary">
                   {getCategoryName(expense.category)} •{" "}
-                  {new Date(expense.date).toLocaleDateString()}
+                  {new Date(expense.date).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </span>
                 <span
                   className="expense-list-item-mobile-amount"
