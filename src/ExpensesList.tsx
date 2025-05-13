@@ -1429,13 +1429,22 @@ export default function ExpensesList() {
         <Dialog open={showDeleteDialog} onClose={handleDeleteCancel}>
           <DialogTitle>Delete Expense{isBulkDelete ? "s" : ""}</DialogTitle>
           <DialogContent>
-            <Typography>
-              {isBulkDelete
-                ? "Are you sure you want to delete the selected expenses?"
-                : isRecurringExpense
-                ? "This is a recurring expense. Deleting it will also remove it from recurring expenses. Are you sure you want to delete this expense?"
-                : "Are you sure you want to delete this expense?"}
-            </Typography>
+            {isBulkDelete ? (
+              <Typography>
+                Are you sure you want to delete the selected expenses?
+              </Typography>
+            ) : isRecurringExpense ? (
+              <Typography>
+                <b>This is a recurring expense source.</b>
+                {
+                  " Deleting it will also remove it from recurring expenses. Are you sure you want to delete this expense?"
+                }
+              </Typography>
+            ) : (
+              <Typography>
+                Are you sure you want to delete this expense?
+              </Typography>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={handleDeleteCancel}>Cancel</Button>
