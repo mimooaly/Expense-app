@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, TextField, MenuItem, CircularProgress } from "@mui/material";
-import * as FeatherIcons from "react-feather";
 
 interface Category {
   id: string;
@@ -65,31 +64,12 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
     (_, i) => new Date().getFullYear() - i
   );
 
-  const getCategoryIcon = (iconName: string) => {
-    if (iconName === "folder") {
-      return (
-        <FeatherIcons.Folder
-          size={18}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
-      );
-    }
-    let featherIconName;
-    if (iconName === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = iconName
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={18}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
+  const getCategoryIcon = (category: Category) => {
+    return (
+      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
+        {category.icon}
+      </span>
+    );
   };
 
   return (
@@ -113,7 +93,7 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
         {categories.map((cat) => (
           <MenuItem key={cat.id} value={cat.name}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              {getCategoryIcon(cat.icon)}
+              {getCategoryIcon(cat)}
               {cat.name}
             </Box>
           </MenuItem>

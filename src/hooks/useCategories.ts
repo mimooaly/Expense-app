@@ -10,7 +10,7 @@ export interface Category {
   isCustom?: boolean;
 }
 
-export function useCategories() {
+export function useCategories(hiddenCategories: string[] = []) {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -48,6 +48,10 @@ export function useCategories() {
         const allCategories = [
           ...expensesCateg.map((cat) => {
             const id = cat.id.toString();
+            // Skip if category is in hiddenCategories
+            if (hiddenCategories.includes(id)) {
+              return null;
+            }
             if (modifiedCategoriesMap[id]) {
               return {
                 ...cat,
@@ -59,7 +63,7 @@ export function useCategories() {
               ...cat,
               id,
             };
-          }),
+          }).filter(Boolean), // Remove null entries
           ...customCategoriesList,
         ];
 
@@ -75,7 +79,7 @@ export function useCategories() {
       return () => unsubscribePrefs();
     });
     return () => unsubscribeCustom();
-  }, []);
+  }, [hiddenCategories]); // Add hiddenCategories as a dependency
 
   return categories;
 } 

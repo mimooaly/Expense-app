@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { database, auth } from "../firebaseConfig";
-import { ref, onValue, update } from "firebase/database";
+import { ref, onValue, update} from "firebase/database";
 
 export interface UserPreferences {
   defaultCurrency: string;
+  hiddenCategories?: string[];
 }
 
 const defaultPreferences: UserPreferences = {
   defaultCurrency: "USD",
+  hiddenCategories: [],
 };
 
 export const useUserPreferences = () => {
@@ -28,6 +30,7 @@ export const useUserPreferences = () => {
         setPreferences({
           ...defaultPreferences,
           ...data,
+          hiddenCategories: data.hiddenCategories || [],
         });
       } else {
         setPreferences(defaultPreferences);
@@ -55,9 +58,37 @@ export const useUserPreferences = () => {
     }
   };
 
+  const hideCategory = async (categoryId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const hiddenCategories = [...(preferences.hiddenCategories || []), categoryId];
+      await updatePreferences({ hiddenCategories });
+    } catch (error) {
+      console.error("Error hiding category:", error);
+      throw error;
+    }
+  };
+
+  const showCategory = async (categoryId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const hiddenCategories = (preferences.hiddenCategories || []).filter(id => id !== categoryId);
+      await updatePreferences({ hiddenCategories });
+    } catch (error) {
+      console.error("Error showing category:", error);
+      throw error;
+    }
+  };
+
   return {
     preferences,
     loading,
     updatePreferences,
+    hideCategory,
+    showCategory,
   };
 }; 

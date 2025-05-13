@@ -23,30 +23,45 @@ import {
 } from "@mui/material";
 import theme from "./theme";
 import { useState } from "react";
-import { Edit2, Trash2, Folder } from "react-feather";
-import * as FeatherIcons from "react-feather";
+import { Edit2, Trash2 } from "react-feather";
 import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, push, remove, update, set, get } from "firebase/database";
 import { useUserPreferences } from "./hooks/useUserPreferences";
 import { currencyOptions } from "./data/currencyOptions";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 
 interface Category {
   id: string;
   name: string;
   icon: string;
+  emoji?: string;
   isCustom?: boolean;
 }
 
 const Settings = () => {
-  const categories = useCategories();
+  const {
+    preferences,
+    loading: prefsLoading,
+    updatePreferences,
+    hideCategory,
+  } = useUserPreferences();
+  const categories = useCategories(preferences.hiddenCategories || []);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null
+  );
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
   );
   const [newCategoryName, setNewCategoryName] = useState("");
-  const { preferences, loading, updatePreferences } = useUserPreferences();
+  const [newCategoryEmoji, setNewCategoryEmoji] = useState("");
+  const [showAddPicker, setShowAddPicker] = useState(false);
+  const [showEditPicker, setShowEditPicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleAddCategory = async () => {
@@ -65,13 +80,14 @@ const Settings = () => {
       const newCategory = {
         id: `custom_${newCategoryId}`,
         name: newCategoryName,
-        icon: "folder",
+        icon: newCategoryEmoji,
         isCustom: true,
       };
 
       await set(newCategoryRef, newCategory);
       setIsAddDialogOpen(false);
       setNewCategoryName("");
+      setNewCategoryEmoji("");
     } catch (error) {
       console.error("Error adding category:", error);
     }
@@ -90,7 +106,7 @@ const Settings = () => {
           ref(database, `customCategories/${user.uid}/${originalId}`),
           {
             name: category.name,
-            icon: "folder",
+            icon: category.emoji,
           }
         );
 
@@ -123,7 +139,7 @@ const Settings = () => {
           ),
           {
             name: category.name,
-            icon: category.icon,
+            icon: category.emoji,
             isCustom: false,
           }
         );
@@ -158,14 +174,43 @@ const Settings = () => {
 
   const handleDeleteCategory = async (category: Category) => {
     const user = auth.currentUser;
-    if (!user || !category.isCustom) return;
+    if (!user) return;
 
     try {
-      // Extract the original ID by removing the "custom_" prefix
-      const originalId = category.id.replace("custom_", "");
-      await remove(ref(database, `customCategories/${user.uid}/${originalId}`));
+      // Check for associated expenses
+      const expensesRef = ref(database, `expenses/${user.uid}`);
+      const snapshot = await get(expensesRef);
+
+      if (snapshot.exists()) {
+        const expenses = snapshot.val();
+        const hasExpenses = Object.values(expenses).some(
+          (expense: any) => expense.category === category.id
+        );
+
+        if (hasExpenses) {
+          setDeleteError("Cannot delete category: It has associated expenses");
+          return;
+        }
+      }
+
+      if (category.isCustom) {
+        // Delete custom category
+        const originalId = category.id.replace("custom_", "");
+        await remove(
+          ref(database, `customCategories/${user.uid}/${originalId}`)
+        );
+      } else {
+        // For default categories, mark as hidden
+        await hideCategory(category.id);
+      }
+
+      // Close dialog and reset state
+      setIsDeleteDialogOpen(false);
+      setCategoryToDelete(null);
+      setDeleteError(null);
     } catch (error) {
       console.error("Error deleting category:", error);
+      setDeleteError("Failed to delete category");
     }
   };
 
@@ -184,31 +229,13 @@ const Settings = () => {
     }
   };
 
-  const getCategoryIcon = (iconName: string) => {
-    if (iconName === "folder") {
-      return (
-        <Folder size={20} style={{ marginRight: 8, verticalAlign: "middle" }} />
-      );
-    }
-    let featherIconName;
-    if (iconName === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = iconName
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={20}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
-  };
+  const getCategoryIcon = (icon: string) => (
+    <span style={{ fontSize: 24, marginRight: 8, verticalAlign: "middle" }}>
+      {icon}
+    </span>
+  );
 
-  if (loading) {
+  if (prefsLoading) {
     return (
       <Container maxWidth="lg" className="page-glossy-background">
         <Box sx={{ my: 4, display: "flex", justifyContent: "center" }}>
@@ -307,18 +334,15 @@ const Settings = () => {
                         >
                           <Edit2 size={16} />
                         </IconButton>
-                        <Tooltip
-                          title={
-                            category.isCustom
-                              ? "Delete category"
-                              : "You can't delete default categories"
-                          }
-                        >
+                        <Tooltip title={"Delete category"}>
                           <span>
                             <IconButton
                               className="categActionButton"
-                              onClick={() => handleDeleteCategory(category)}
-                              disabled={!category.isCustom}
+                              onClick={() => {
+                                setCategoryToDelete(category);
+                                setDeleteError(null);
+                                setIsDeleteDialogOpen(true);
+                              }}
                             >
                               <Trash2 size={16} />
                             </IconButton>
@@ -347,6 +371,9 @@ const Settings = () => {
         <Dialog
           open={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
+          PaperProps={{
+            sx: { overflow: "visible" },
+          }}
         >
           <DialogTitle>Add Custom Category</DialogTitle>
           <DialogContent>
@@ -358,6 +385,36 @@ const Settings = () => {
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
+            <TextField
+              margin="dense"
+              label="Category Icon"
+              fullWidth
+              value={newCategoryEmoji}
+              onClick={() => setShowAddPicker(true)}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <IconButton onClick={() => setShowAddPicker(true)}>
+                    <span role="img" aria-label="emoji">
+                      😊
+                    </span>
+                  </IconButton>
+                ),
+              }}
+            />
+            {showAddPicker && (
+              <Box sx={{ position: "absolute", zIndex: 1000 }}>
+                <Picker
+                  data={data}
+                  onEmojiSelect={(emoji: any) => {
+                    setNewCategoryEmoji(emoji.native);
+                    setShowAddPicker(false);
+                  }}
+                  theme="light"
+                  set="native"
+                />
+              </Box>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
@@ -371,23 +428,61 @@ const Settings = () => {
         <Dialog
           open={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
+          PaperProps={{
+            sx: { overflow: "visible" },
+          }}
         >
           <DialogTitle>Edit Category</DialogTitle>
           <DialogContent>
             {selectedCategory && (
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Category Name"
-                fullWidth
-                value={selectedCategory.name}
-                onChange={(e) =>
-                  setSelectedCategory({
-                    ...selectedCategory,
-                    name: e.target.value,
-                  })
-                }
-              />
+              <>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Category Name"
+                  fullWidth
+                  value={selectedCategory.name}
+                  onChange={(e) =>
+                    setSelectedCategory({
+                      ...selectedCategory,
+                      name: e.target.value,
+                    })
+                  }
+                />
+                <TextField
+                  margin="dense"
+                  label="Category Icon"
+                  fullWidth
+                  value={selectedCategory.emoji || ""}
+                  onClick={() => setShowEditPicker(true)}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <IconButton onClick={() => setShowEditPicker(true)}>
+                        <span role="img" aria-label="emoji">
+                          😊
+                        </span>
+                      </IconButton>
+                    ),
+                  }}
+                />
+                {showEditPicker && (
+                  <Box sx={{ position: "absolute", zIndex: 1000 }}>
+                    <Picker
+                      data={data}
+                      onEmojiSelect={(emoji: any) => {
+                        setSelectedCategory({
+                          ...selectedCategory,
+                          emoji: emoji.native,
+                        });
+                        setShowEditPicker(false);
+                      }}
+                      theme="light"
+                      set="native"
+                    />
+                  </Box>
+                )}
+              </>
             )}
           </DialogContent>
           <DialogActions>
@@ -399,6 +494,49 @@ const Settings = () => {
               variant="contained"
             >
               Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Category Dialog */}
+        <Dialog
+          open={isDeleteDialogOpen}
+          onClose={() => {
+            setIsDeleteDialogOpen(false);
+            setCategoryToDelete(null);
+            setDeleteError(null);
+          }}
+        >
+          <DialogTitle>Delete Category</DialogTitle>
+          <DialogContent>
+            {deleteError ? (
+              <Typography color="error">{deleteError}</Typography>
+            ) : (
+              <Typography>
+                Are you sure you want to delete this category? This action
+                cannot be undone.
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setCategoryToDelete(null);
+                setDeleteError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                categoryToDelete && handleDeleteCategory(categoryToDelete)
+              }
+              color="error"
+              variant="contained"
+              disabled={!!deleteError}
+            >
+              Delete
             </Button>
           </DialogActions>
         </Dialog>

@@ -164,32 +164,11 @@ const DashboardPage: React.FC = () => {
   }, [allExpenses, startDate, endDate]);
 
   // Get category icon
-  const getCategoryIcon = (iconName: string) => {
-    if (iconName === "folder") {
-      return (
-        <FeatherIcons.Folder
-          size={20}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
-      );
-    }
-    let featherIconName;
-    if (iconName === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = iconName
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={20}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
-  };
+  const getCategoryIcon = (emoji: string) => (
+    <span style={{ fontSize: 24, marginRight: 8, verticalAlign: "middle" }}>
+      {emoji}
+    </span>
+  );
 
   // Expenses Over Time (Line Chart)
   const expensesOverTimeData = useMemo(() => {

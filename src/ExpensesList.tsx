@@ -147,32 +147,11 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({
   const getCategoryIcon = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return null;
-
-    if (category.icon === "folder") {
-      return (
-        <FeatherIcons.Folder
-          size={20}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
-      );
-    }
-
-    let featherIconName;
-    if (category.icon === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = category.icon
-        .split("-")
-        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={20}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
+    return (
+      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
+        {category.icon}
+      </span>
+    );
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -284,32 +263,11 @@ const ExpensesListMobile: React.FC<ExpensesTableProps> = ({
   const getCategoryIcon = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return null;
-
-    if (category.icon === "folder") {
-      return (
-        <FeatherIcons.Folder
-          size={18}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
-      );
-    }
-
-    let featherIconName;
-    if (category.icon === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = category.icon
-        .split("-")
-        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={18}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
+    return (
+      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
+        {category.icon}
+      </span>
+    );
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -1041,10 +999,9 @@ export default function ExpensesList() {
   const getCategoryIcon = (iconName: string) => {
     if (iconName === "folder") {
       return (
-        <FeatherIcons.Folder
-          size={20}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
+        <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
+          {iconName}
+        </span>
       );
     }
 

@@ -15,11 +15,11 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Expense } from "../ExpensesList";
-import * as FeatherIcons from "react-feather";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useCategories } from "../hooks/useCategories";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { currencyOptions } from "../data/currencyOptions";
+import { Category } from "../hooks/useCategories";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -135,31 +135,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     }
   }, [initialValues]);
 
-  const getCategoryIcon = (iconName: string) => {
-    if (iconName === "folder") {
-      return (
-        <FeatherIcons.Folder
-          size={18}
-          style={{ marginRight: 8, verticalAlign: "middle" }}
-        />
-      );
-    }
-    let featherIconName;
-    if (iconName === "github") {
-      featherIconName = "GitHub";
-    } else {
-      featherIconName = iconName
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("");
-    }
-    const IconComponent = (FeatherIcons as any)[featherIconName];
-    return IconComponent ? (
-      <IconComponent
-        size={18}
-        style={{ marginRight: 8, verticalAlign: "middle" }}
-      />
-    ) : null;
+  const getCategoryIcon = (category: Category) => {
+    return (
+      <span style={{ fontSize: 20, marginRight: 8, verticalAlign: "middle" }}>
+        {category.icon}
+      </span>
+    );
   };
 
   return (
@@ -200,8 +181,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             <MenuItem value="">Select Category</MenuItem>
             {categories.map((cat) => (
               <MenuItem key={cat.id} value={cat.id.toString()}>
-                {getCategoryIcon(cat.icon)}
-                {cat.name}
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  {getCategoryIcon(cat)}
+                  {cat.name}
+                </Box>
               </MenuItem>
             ))}
           </TextField>
