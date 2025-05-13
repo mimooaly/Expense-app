@@ -601,22 +601,19 @@ const DashboardPage: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "top",
             }}
           >
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
+                alignItems: "flex-start",
                 width: "100%",
                 mb: 2,
               }}
             >
-              <Typography
-                variant="body1"
-                sx={{ fontWeight: "bold", alignSelf: "center" }}
-              >
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                 Spending by Category
               </Typography>
               <IconButton
@@ -655,6 +652,7 @@ const DashboardPage: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  flexGrow: 1,
                 }}
               >
                 <Pie
