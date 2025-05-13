@@ -20,10 +20,11 @@ import {
   Tooltip,
   Paper,
   CircularProgress,
+  Popover,
 } from "@mui/material";
 import theme from "./theme";
 import { useState } from "react";
-import { Edit2, Trash2 } from "react-feather";
+import { Edit2, Trash2, X } from "react-feather";
 import { useCategories } from "./hooks/useCategories";
 import { database, auth } from "./firebaseConfig";
 import { ref, push, remove, update, set, get } from "firebase/database";
@@ -63,6 +64,10 @@ const Settings = () => {
   const [showAddPicker, setShowAddPicker] = useState(false);
   const [showEditPicker, setShowEditPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [addPickerAnchorEl, setAddPickerAnchorEl] =
+    useState<HTMLElement | null>(null);
+  const [editPickerAnchorEl, setEditPickerAnchorEl] =
+    useState<HTMLElement | null>(null);
 
   const handleAddCategory = async () => {
     const user = auth.currentUser;
@@ -372,11 +377,22 @@ const Settings = () => {
           open={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
           PaperProps={{
-            sx: { overflow: "visible" },
+            sx: {
+              overflow: "visible",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+            },
           }}
         >
           <DialogTitle>Add Custom Category</DialogTitle>
-          <DialogContent>
+          <DialogContent
+            sx={{
+              overflow: "visible",
+              position: "relative",
+              flex: "1 1 auto",
+            }}
+          >
             <TextField
               autoFocus
               margin="dense"
@@ -390,11 +406,19 @@ const Settings = () => {
               label="Category Icon"
               fullWidth
               value={newCategoryEmoji}
-              onClick={() => setShowAddPicker(true)}
+              onClick={(e) => {
+                setAddPickerAnchorEl(e.currentTarget);
+                setShowAddPicker(true);
+              }}
               InputProps={{
                 readOnly: true,
                 endAdornment: (
-                  <IconButton onClick={() => setShowAddPicker(true)}>
+                  <IconButton
+                    onClick={(e) => {
+                      setAddPickerAnchorEl(e.currentTarget);
+                      setShowAddPicker(true);
+                    }}
+                  >
                     <span role="img" aria-label="emoji">
                       😊
                     </span>
@@ -402,19 +426,67 @@ const Settings = () => {
                 ),
               }}
             />
-            {showAddPicker && (
-              <Box sx={{ position: "absolute", zIndex: 1000 }}>
+            <Popover
+              open={showAddPicker}
+              anchorEl={addPickerAnchorEl}
+              onClose={() => {
+                setShowAddPicker(false);
+                setAddPickerAnchorEl(null);
+              }}
+              anchorOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              transformOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              PaperProps={{
+                sx: {
+                  overflow: "hidden",
+                  borderRadius: 2,
+                  "@media (max-width: 600px)": {
+                    width: "auto",
+                    maxWidth: "90vw",
+                  },
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="h6">Pick a new emoji</Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setShowAddPicker(false);
+                    setAddPickerAnchorEl(null);
+                  }}
+                  sx={{ ml: 1 }}
+                >
+                  <X size={18} />
+                </IconButton>
+              </Box>
+              <Box sx={{ p: 1 }}>
                 <Picker
                   data={data}
                   onEmojiSelect={(emoji: any) => {
                     setNewCategoryEmoji(emoji.native);
                     setShowAddPicker(false);
+                    setAddPickerAnchorEl(null);
                   }}
                   theme="light"
                   set="native"
                 />
               </Box>
-            )}
+            </Popover>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
@@ -429,11 +501,22 @@ const Settings = () => {
           open={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           PaperProps={{
-            sx: { overflow: "visible" },
+            sx: {
+              overflow: "visible",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+            },
           }}
         >
           <DialogTitle>Edit Category</DialogTitle>
-          <DialogContent>
+          <DialogContent
+            sx={{
+              overflow: "visible",
+              position: "relative",
+              flex: "1 1 auto",
+            }}
+          >
             {selectedCategory && (
               <>
                 <TextField
@@ -454,11 +537,19 @@ const Settings = () => {
                   label="Category Icon"
                   fullWidth
                   value={selectedCategory.emoji || ""}
-                  onClick={() => setShowEditPicker(true)}
+                  onClick={(e) => {
+                    setEditPickerAnchorEl(e.currentTarget);
+                    setShowEditPicker(true);
+                  }}
                   InputProps={{
                     readOnly: true,
                     endAdornment: (
-                      <IconButton onClick={() => setShowEditPicker(true)}>
+                      <IconButton
+                        onClick={(e) => {
+                          setEditPickerAnchorEl(e.currentTarget);
+                          setShowEditPicker(true);
+                        }}
+                      >
                         <span role="img" aria-label="emoji">
                           😊
                         </span>
@@ -466,8 +557,55 @@ const Settings = () => {
                     ),
                   }}
                 />
-                {showEditPicker && (
-                  <Box sx={{ position: "absolute", zIndex: 1000 }}>
+                <Popover
+                  open={showEditPicker}
+                  anchorEl={editPickerAnchorEl}
+                  onClose={() => {
+                    setShowEditPicker(false);
+                    setEditPickerAnchorEl(null);
+                  }}
+                  anchorOrigin={{
+                    vertical: "center",
+                    horizontal: "center",
+                  }}
+                  transformOrigin={{
+                    vertical: "center",
+                    horizontal: "center",
+                  }}
+                  PaperProps={{
+                    sx: {
+                      overflow: "hidden",
+                      borderRadius: 2,
+                      "@media (max-width: 600px)": {
+                        width: "auto",
+                        maxWidth: "90vw",
+                      },
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: 2,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography variant="h6">Pick a new emoji</Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setShowEditPicker(false);
+                        setEditPickerAnchorEl(null);
+                      }}
+                      sx={{ ml: 1 }}
+                    >
+                      <X size={18} />
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ p: 1 }}>
                     <Picker
                       data={data}
                       onEmojiSelect={(emoji: any) => {
@@ -476,12 +614,13 @@ const Settings = () => {
                           emoji: emoji.native,
                         });
                         setShowEditPicker(false);
+                        setEditPickerAnchorEl(null);
                       }}
                       theme="light"
                       set="native"
                     />
                   </Box>
-                )}
+                </Popover>
               </>
             )}
           </DialogContent>
