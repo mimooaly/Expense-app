@@ -1105,7 +1105,62 @@ export default function ExpensesList() {
                   aria-controls="filters-search-panel-content"
                   id="filters-search-panel-header"
                 >
-                  <Typography>Filters & Search</Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 0.5,
+                      width: "100%",
+                    }}
+                  >
+                    <Typography sx={{ textAlign: "left" }}>
+                      Filters & Search
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem", textAlign: "left" }}
+                    >
+                      {[
+                        <React.Fragment key="category">
+                          Category:{" "}
+                          <Box component="span" sx={{ fontWeight: "bold" }}>
+                            {selectedCategory
+                              ? categories.find(
+                                  (c) => c.id === selectedCategory
+                                )?.name || selectedCategory
+                              : "All"}
+                          </Box>
+                        </React.Fragment>,
+                        <React.Fragment key="month">
+                          Month:{" "}
+                          <b>
+                            {selectedMonth
+                              ? new Date(
+                                  2000,
+                                  selectedMonth - 1
+                                ).toLocaleString("default", { month: "long" })
+                              : "All"}
+                          </b>
+                        </React.Fragment>,
+                        <React.Fragment key="year">
+                          Year: <b>{selectedYear || "All"}</b>
+                        </React.Fragment>,
+                        searchQuery && (
+                          <React.Fragment key="search">
+                            Search: <b>"{searchQuery}"</b>
+                          </React.Fragment>
+                        ),
+                      ]
+                        .filter(Boolean)
+                        .map((item, index, array) => (
+                          <React.Fragment key={index}>
+                            {item}
+                            {index < array.length - 1 && " • "}
+                          </React.Fragment>
+                        ))}
+                    </Typography>
+                  </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
                   <Box
