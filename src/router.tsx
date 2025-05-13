@@ -6,7 +6,6 @@ import ExpensesList from "./ExpensesList";
 import LandingPage from "./LandingPage";
 import Support from "./Support";
 import Settings from "./Settings";
-import GoogleAnalytics from "./components/GoogleAnalytics";
 import { Analytics } from "@vercel/analytics/react";
 import Header from "./components/Header";
 import { Box } from "@mui/material";
@@ -17,7 +16,6 @@ const Root = () => {
 
   return (
     <>
-      <GoogleAnalytics />
       <Analytics />
       <Header />
       <Box sx={{ mt: isLandingPage ? 0 : 8, p: isLandingPage ? 0 : 2 }}>

@@ -15,7 +15,6 @@
     "@mui/icons-material": "^5.15.10",
     "@mui/material": "^5.15.10",
     "@mui/x-data-grid": "^6.19.4",
-    "@vercel/analytics": "^1.1.2",
     "chart.js": "^4.4.1",
     "firebase": "^10.8.0",
     "formik": "^2.4.5",
