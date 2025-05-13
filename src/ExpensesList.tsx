@@ -55,6 +55,7 @@ import RecurringExpensesDialog from "./components/RecurringExpensesDialog";
 import { useUserPreferences } from "./hooks/useUserPreferences";
 import BulkActionsToolbar from "./components/BulkActionsToolbar";
 import BulkEditDialogs from "./components/BulkEditDialogs";
+import { useNavigate } from "react-router-dom";
 
 export interface Expense {
   id: string;
@@ -408,6 +409,7 @@ export default function ExpensesList() {
   const { preferences } = useUserPreferences();
   const [initialValues, setInitialValues] = useState<Expense | null>(null);
   const [isBulkDelete, setIsBulkDelete] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1277,9 +1279,42 @@ export default function ExpensesList() {
           ) : filteredExpenses.length === 0 ? (
             <Box sx={{ textAlign: "center", mt: 4 }}>
               <img src={emptyImage} alt="No expenses" style={{ width: 200 }} />
-              <Typography variant="h6" sx={{ mt: 2 }}>
+              <Typography variant="h6" sx={{ mt: 2, mb: 3 }}>
                 No expenses found
               </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  alignItems: "center",
+                }}
+              >
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => navigate("/settings")}
+                  sx={{ width: { xs: "100%", sm: "300px" } }}
+                >
+                  1. Set your default currency
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => navigate("/settings")}
+                  sx={{ width: { xs: "100%", sm: "300px" } }}
+                >
+                  2. Customize your categories
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpen}
+                  sx={{ width: { xs: "100%", sm: "300px" } }}
+                >
+                  3. Add your first expense
+                </Button>
+              </Box>
             </Box>
           ) : isMobile ? (
             <ExpensesListMobile

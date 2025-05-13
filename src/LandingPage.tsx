@@ -12,7 +12,6 @@ import {
 import { useLocation } from "react-router-dom";
 import iconImage from "./assets/icon.png";
 import appVideo from "./assets/app.mp4";
-import bgImage from "./assets/bg.svg";
 import pennyImage from "./assets/penny.png";
 import cashImage from "./assets/cash.png";
 import { auth } from "./firebaseConfig";
@@ -279,12 +278,12 @@ const LandingPage: React.FC = () => {
                   <img
                     src={iconImage}
                     alt="Logo"
-                    style={{ width: 48, height: 48, marginRight: 12 }}
+                    style={{ width: 80, height: 80, marginRight: 12 }}
                   />
                   <Typography
                     variant="h4"
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 400,
                       color: "text.primary",
                     }}
                   >
@@ -469,7 +468,7 @@ const LandingPage: React.FC = () => {
             overflow: "visible",
           }}
           style={{
-            background: `url(${bgImage}) top center/cover no-repeat, #f7fafc`,
+            background: `url(/bg.svg) top center/cover no-repeat, #f7fafc`,
           }}
           id="why"
         >
