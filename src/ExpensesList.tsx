@@ -416,6 +416,7 @@ export default function ExpensesList() {
   const { preferences } = useUserPreferences();
   const [initialValues, setInitialValues] = useState<Expense | null>(null);
   const [isBulkDelete, setIsBulkDelete] = useState(false);
+  const [isRecurringExpense, setIsRecurringExpense] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -665,9 +666,12 @@ export default function ExpensesList() {
   };
 
   const handleDeleteClick = (id: string) => {
+    const expense = expenses.find((exp) => exp.id === id);
     setDeleteId(id);
     setIsBulkDelete(false);
     setShowDeleteDialog(true);
+    // Store whether this is a recurring expense
+    setIsRecurringExpense(expense?.monthly || false);
   };
 
   const handleBulkDeleteClick = () => {
@@ -1428,6 +1432,8 @@ export default function ExpensesList() {
             <Typography>
               {isBulkDelete
                 ? "Are you sure you want to delete the selected expenses?"
+                : isRecurringExpense
+                ? "This is a recurring expense. Deleting it will also remove it from recurring expenses. Are you sure you want to delete this expense?"
                 : "Are you sure you want to delete this expense?"}
             </Typography>
           </DialogContent>
