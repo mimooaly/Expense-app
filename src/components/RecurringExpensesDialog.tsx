@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { Pause, Play, X } from "react-feather";
 import { useCategories } from "../hooks/useCategories";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import emptyImage from "../assets/empty.png";
 
 interface RecurringExpensesDialogProps {
@@ -34,7 +35,8 @@ const RecurringExpensesDialog: React.FC<RecurringExpensesDialogProps> = ({
   onDisableRecurring,
   isExpenseInCurrentMonth,
 }) => {
-  const categories = useCategories();
+  const { preferences } = useUserPreferences();
+  const categories = useCategories(preferences.hiddenCategories || []);
 
   const getCategoryIcon = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);

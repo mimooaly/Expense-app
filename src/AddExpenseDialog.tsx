@@ -8,9 +8,13 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
+  Box,
 } from "@mui/material";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
+import { useUserPreferences } from "./hooks/useUserPreferences";
+import { useCategories } from "./hooks/useCategories";
+import { useFormik } from "formik";
 
 interface ExpenseFormData {
   id?: string;
@@ -20,48 +24,60 @@ interface ExpenseFormData {
   date: string;
   monthly?: boolean;
   startDate?: string;
+  currency: string;
 }
 
 interface AddExpenseDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: ExpenseFormData) => void;
+  onAdd: (data: ExpenseFormData) => void;
   isEdit?: boolean;
   initialValues?: ExpenseFormData;
 }
 
-const validationSchema = Yup.object().shape({
+const validationSchema = Yup.object({
   name: Yup.string().required("Name is required"),
   amount: Yup.number()
     .required("Amount is required")
     .positive("Amount must be positive"),
   category: Yup.string().required("Category is required"),
   date: Yup.string().required("Date is required"),
-  startDate: Yup.string().when("monthly", {
-    is: true,
-    then: (schema) =>
-      schema.required("Start date is required for recurring expenses"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
+  currency: Yup.string().required("Currency is required"),
 });
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   open,
   onClose,
-  onSave,
+  onAdd,
   isEdit = false,
   initialValues,
 }) => {
+  const { preferences } = useUserPreferences();
+  const categories = useCategories(preferences.hiddenCategories || []);
+
+  const formik = useFormik({
+    initialValues: {
+      name: initialValues?.name || "",
+      amount: initialValues?.amount || 0,
+      category: initialValues?.category || "",
+      date: initialValues?.date || new Date().toISOString().split("T")[0],
+      monthly: initialValues?.monthly || false,
+      currency: initialValues?.currency || preferences.defaultCurrency,
+    },
+    validationSchema,
+    onSubmit: onAdd,
+  });
+
   const today = new Date().toISOString().split("T")[0];
 
   const handleSave = async (formData: ExpenseFormData) => {
     if (isEdit && initialValues) {
-      onSave({
+      onAdd({
         ...formData,
         id: initialValues.id,
       });
     } else {
-      onSave(formData);
+      onAdd(formData);
     }
     onClose();
   };
@@ -78,6 +94,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
           monthly: initialValues?.monthly || false,
           startDate: initialValues?.startDate || today,
           id: initialValues?.id,
+          currency: initialValues?.currency || preferences.defaultCurrency,
         }}
         enableReinitialize={true}
         validationSchema={validationSchema}
@@ -151,6 +168,15 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                   helperText={touched.startDate && errors.startDate}
                 />
               )}
+              <Field
+                as={TextField}
+                name="currency"
+                label="Currency"
+                fullWidth
+                margin="normal"
+                error={touched.currency && Boolean(errors.currency)}
+                helperText={touched.currency && errors.currency}
+              />
             </DialogContent>
             <DialogActions>
               <Button onClick={onClose}>Cancel</Button>

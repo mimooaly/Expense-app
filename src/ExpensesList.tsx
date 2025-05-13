@@ -392,32 +392,34 @@ const emptyExpense = {
   currency: "USD",
 };
 
-export default function ExpensesList() {
+const ExpensesList: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [open, setOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isRecurringExpense, setIsRecurringExpense] = useState(false);
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [category, setCategory] = useState("");
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [extraCategoryNames, setExtraCategoryNames] = useState<string[]>([]);
+  const { preferences } = useUserPreferences();
+  const categories = useCategories(preferences.hiddenCategories || []);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isToolbarFixed, setIsToolbarFixed] = useState(false);
+  const tableHeaderRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
+  const [initialValues, setInitialValues] = useState<Expense | null>(null);
+  const navigate = useNavigate();
   const [bulkActionAnchorEl, setBulkActionAnchorEl] =
     useState<null | HTMLElement>(null);
   const [bulkEditType, setBulkEditType] = useState<
     "category" | "amount" | "date" | "recurring" | null
   >(null);
-  const [extraCategoryNames, setExtraCategoryNames] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isToolbarFixed, setIsToolbarFixed] = useState(false);
-  const tableHeaderRef = useRef<HTMLDivElement>(null);
-  const theme = useTheme();
-  const { preferences } = useUserPreferences();
-  const [initialValues, setInitialValues] = useState<Expense | null>(null);
-  const [isBulkDelete, setIsBulkDelete] = useState(false);
-  const [isRecurringExpense, setIsRecurringExpense] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -432,7 +434,6 @@ export default function ExpensesList() {
   }, []);
 
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const categories = useCategories(preferences.hiddenCategories || []);
 
   const fetchExpenses = useCallback((user: User) => {
     setLoading(true);
@@ -530,18 +531,17 @@ export default function ExpensesList() {
     return expenses.filter((expense) => {
       // Category: "" means All
       const matchesCategory =
-        !selectedCategory ||
-        expense.categoryName === selectedCategory ||
-        expense.category === selectedCategory;
+        !category ||
+        expense.categoryName === category ||
+        expense.category === category;
 
       // Month: 0 means All
       const expenseMonth = new Date(expense.date).getMonth() + 1;
-      const matchesMonth =
-        !selectedMonth || expenseMonth === Number(selectedMonth);
+      const matchesMonth = !month || expenseMonth === Number(month);
 
       // Year: 0 means All
       const expenseYear = new Date(expense.date).getFullYear();
-      const matchesYear = !selectedYear || expenseYear === Number(selectedYear);
+      const matchesYear = !year || expenseYear === Number(year);
 
       // Search (if you want to keep it)
       const search = searchQuery.trim().toLowerCase();
@@ -553,7 +553,7 @@ export default function ExpensesList() {
 
       return matchesCategory && matchesMonth && matchesYear && matchesSearch;
     });
-  }, [expenses, selectedCategory, selectedMonth, selectedYear, searchQuery]);
+  }, [expenses, category, month, year, searchQuery]);
 
   // Memoize recurring expenses
   const recurringExpenses = useMemo(
@@ -569,15 +569,15 @@ export default function ExpensesList() {
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategory(category);
+    setCategory(category);
   }, []);
 
   const handleMonthChange = useCallback((month: number) => {
-    setSelectedMonth(month);
+    setMonth(month);
   }, []);
 
   const handleYearChange = useCallback((year: number) => {
-    setSelectedYear(year);
+    setYear(year);
   }, []);
 
   const handleSearchChange = useCallback((query: string) => {
@@ -677,6 +677,116 @@ export default function ExpensesList() {
   const handleBulkDeleteClick = () => {
     setIsBulkDelete(true);
     setShowDeleteDialog(true);
+  };
+
+  const handleBulkActionClick = (event: React.MouseEvent<HTMLElement>) => {
+    setBulkActionAnchorEl(event.currentTarget);
+  };
+
+  const handleBulkActionClose = () => {
+    setBulkActionAnchorEl(null);
+  };
+
+  const handleBulkCategoryChange = async (categoryId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      // Get category name based on whether it's a custom or default category
+      let categoryName = "";
+      if (categoryId.startsWith("custom_")) {
+        // For custom categories, get the name from the customCategories node
+        const customCategoryRef = ref(
+          database,
+          `customCategories/${user.uid}/${categoryId.replace("custom_", "")}`
+        );
+        const snapshot = await get(customCategoryRef);
+        if (snapshot.exists()) {
+          categoryName = snapshot.val().name;
+        }
+      } else {
+        // For default categories, get the name from expensesCateg
+        categoryName =
+          expensesCateg.find((cat) => cat.id === parseInt(categoryId))?.name ||
+          "";
+      }
+
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/category`] = categoryId;
+        updates[`expenses/${user.uid}/${id}/categoryName`] = categoryName;
+      });
+      await update(ref(database), updates);
+      setBulkEditType(null);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating categories:", error);
+    }
+  };
+
+  const handleBulkAmountChange = async (amount: number) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/amount`] = amount;
+      });
+      await update(ref(database), updates);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating amounts:", error);
+    }
+  };
+
+  const handleBulkDateChange = async (date: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/date`] = date;
+      });
+      await update(ref(database), updates);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating dates:", error);
+    }
+  };
+
+  const handleBulkRecurringChange = async (isRecurring: boolean) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}/monthly`] = isRecurring;
+      });
+      await update(ref(database), updates);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error updating recurring status:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setShowDeleteDialog(false);
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const updates: { [key: string]: any } = {};
+      selected.forEach((id) => {
+        updates[`expenses/${user.uid}/${id}`] = null;
+      });
+      await update(ref(database), updates);
+      setSelected([]);
+    } catch (error) {
+      console.error("Error deleting expenses:", error);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -913,116 +1023,6 @@ export default function ExpensesList() {
     );
   };
 
-  const handleBulkActionClick = (event: React.MouseEvent<HTMLElement>) => {
-    setBulkActionAnchorEl(event.currentTarget);
-  };
-
-  const handleBulkActionClose = () => {
-    setBulkActionAnchorEl(null);
-  };
-
-  const handleBulkCategoryChange = async (categoryId: string) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      // Get category name based on whether it's a custom or default category
-      let categoryName = "";
-      if (categoryId.startsWith("custom_")) {
-        // For custom categories, get the name from the customCategories node
-        const customCategoryRef = ref(
-          database,
-          `customCategories/${user.uid}/${categoryId.replace("custom_", "")}`
-        );
-        const snapshot = await get(customCategoryRef);
-        if (snapshot.exists()) {
-          categoryName = snapshot.val().name;
-        }
-      } else {
-        // For default categories, get the name from expensesCateg
-        categoryName =
-          expensesCateg.find((cat) => cat.id === parseInt(categoryId))?.name ||
-          "";
-      }
-
-      const updates: { [key: string]: any } = {};
-      selected.forEach((id) => {
-        updates[`expenses/${user.uid}/${id}/category`] = categoryId;
-        updates[`expenses/${user.uid}/${id}/categoryName`] = categoryName;
-      });
-      await update(ref(database), updates);
-      setBulkEditType(null);
-      setSelected([]);
-    } catch (error) {
-      console.error("Error updating categories:", error);
-    }
-  };
-
-  const handleBulkAmountChange = async (amount: number) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const updates: { [key: string]: any } = {};
-      selected.forEach((id) => {
-        updates[`expenses/${user.uid}/${id}/amount`] = amount;
-      });
-      await update(ref(database), updates);
-      setSelected([]);
-    } catch (error) {
-      console.error("Error updating amounts:", error);
-    }
-  };
-
-  const handleBulkDateChange = async (date: string) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const updates: { [key: string]: any } = {};
-      selected.forEach((id) => {
-        updates[`expenses/${user.uid}/${id}/date`] = date;
-      });
-      await update(ref(database), updates);
-      setSelected([]);
-    } catch (error) {
-      console.error("Error updating dates:", error);
-    }
-  };
-
-  const handleBulkRecurringChange = async (isRecurring: boolean) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const updates: { [key: string]: any } = {};
-      selected.forEach((id) => {
-        updates[`expenses/${user.uid}/${id}/monthly`] = isRecurring;
-      });
-      await update(ref(database), updates);
-      setSelected([]);
-    } catch (error) {
-      console.error("Error updating recurring status:", error);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    setShowDeleteDialog(false);
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const updates: { [key: string]: any } = {};
-      selected.forEach((id) => {
-        updates[`expenses/${user.uid}/${id}`] = null;
-      });
-      await update(ref(database), updates);
-      setSelected([]);
-    } catch (error) {
-      console.error("Error deleting expenses:", error);
-    }
-  };
-
   const getCategoryIcon = (iconName: string) => {
     if (iconName === "folder") {
       return (
@@ -1129,26 +1129,25 @@ export default function ExpensesList() {
                         <React.Fragment key="category">
                           Category:{" "}
                           <Box component="span" sx={{ fontWeight: "bold" }}>
-                            {selectedCategory
-                              ? categories.find(
-                                  (c) => c.id === selectedCategory
-                                )?.name || selectedCategory
+                            {category
+                              ? categories.find((c) => c.id === category)
+                                  ?.name || category
                               : "All"}
                           </Box>
                         </React.Fragment>,
                         <React.Fragment key="month">
                           Month:{" "}
                           <b>
-                            {selectedMonth
-                              ? new Date(
-                                  2000,
-                                  selectedMonth - 1
-                                ).toLocaleString("default", { month: "long" })
+                            {month
+                              ? new Date(2000, month - 1).toLocaleString(
+                                  "default",
+                                  { month: "long" }
+                                )
                               : "All"}
                           </b>
                         </React.Fragment>,
                         <React.Fragment key="year">
-                          Year: <b>{selectedYear || "All"}</b>
+                          Year: <b>{year || "All"}</b>
                         </React.Fragment>,
                         searchQuery && (
                           <React.Fragment key="search">
@@ -1194,9 +1193,9 @@ export default function ExpensesList() {
                       }}
                     />
                     <ExpensesFilter
-                      category={selectedCategory}
-                      month={selectedMonth}
-                      year={selectedYear}
+                      category={category}
+                      month={month}
+                      year={year}
                       categories={categories}
                       extraCategoryNames={extraCategoryNames}
                       onCategoryChange={handleCategoryChange}
@@ -1237,9 +1236,9 @@ export default function ExpensesList() {
             >
               {!isMobile && (
                 <ExpensesFilter
-                  category={selectedCategory}
-                  month={selectedMonth}
-                  year={selectedYear}
+                  category={category}
+                  month={month}
+                  year={year}
                   categories={categories}
                   extraCategoryNames={extraCategoryNames}
                   onCategoryChange={handleCategoryChange}
@@ -1336,7 +1335,7 @@ export default function ExpensesList() {
                 onAmountClick={() => setBulkEditType("amount")}
                 onDateClick={() => setBulkEditType("date")}
                 onRecurringClick={() => setBulkEditType("recurring")}
-                onDeleteClick={handleBulkDeleteClick}
+                onDeleteClick={handleBulkDelete}
                 onSelectAll={handleSelectAll}
                 anchorEl={bulkActionAnchorEl}
               />
@@ -1485,4 +1484,6 @@ export default function ExpensesList() {
       </Box>
     </Container>
   );
-}
+};
+
+export default ExpensesList;
