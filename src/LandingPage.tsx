@@ -131,7 +131,7 @@ const LandingPage: React.FC = () => {
               position: "fixed",
               top: 0,
               zIndex: 100,
-              width: "100vw",
+              width: "100%",
               bgcolor: "#fff",
               boxShadow: "0 2px 8px rgba(60,72,100,0.06)",
               py: 2,
@@ -230,7 +230,7 @@ const LandingPage: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(120deg, #e8f5e9 0%, #f7fafc 100%)",
+            background: "#f7fafc",
             py: 0,
             mt: "60px",
           }}
@@ -431,7 +431,6 @@ const LandingPage: React.FC = () => {
                       width: "100%",
                       borderRadius: 4,
                       overflow: "hidden",
-                      boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
                       background: "#fff",
                     }}
                   >
@@ -459,7 +458,7 @@ const LandingPage: React.FC = () => {
         <Box
           sx={{
             position: "relative",
-            width: "100vw",
+            width: "100%",
             minHeight: { xs: 700, md: 800 },
             display: "flex",
             flexDirection: "column",
@@ -470,7 +469,7 @@ const LandingPage: React.FC = () => {
             overflow: "visible",
           }}
           style={{
-            background: `url(${bgImage}) top center/cover no-repeat, linear-gradient(135deg, #e8f5e9 0%, #f7fafc 100%)`,
+            background: `url(${bgImage}) top center/cover no-repeat, #f7fafc`,
           }}
           id="why"
         >
@@ -588,7 +587,7 @@ const LandingPage: React.FC = () => {
         {/* Supported Currencies Section */}
         <Box
           sx={{
-            width: "100vw",
+            width: "100%",
             bgcolor: "#fff",
             py: { xs: 8, md: 12 },
             px: 0,
@@ -693,7 +692,7 @@ const LandingPage: React.FC = () => {
         {/* About This Project Section */}
         <Box
           sx={{
-            width: "100vw",
+            width: "100%",
             bgcolor: "#f7fafc",
             py: { xs: 8, md: 12 },
             px: 0,
@@ -768,7 +767,7 @@ const LandingPage: React.FC = () => {
           sx={{
             py: { xs: 8, md: 12 },
             px: 0,
-            width: "100vw",
+            width: "100%",
             bgcolor: "#f7fafc",
             textAlign: "center",
           }}
@@ -847,7 +846,7 @@ const LandingPage: React.FC = () => {
         {/* Footer - Simple */}
         <Box
           sx={{
-            width: "100vw",
+            width: "100%",
             bgcolor: "#f7fafc",
             borderTop: "1px solid #e0e0e0",
             py: 3,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { database, auth } from "./firebaseConfig";
 import { ref, onValue } from "firebase/database";
 import { onAuthStateChanged } from "firebase/auth";
@@ -156,10 +156,12 @@ const DashboardPage: React.FC = () => {
   // Filter by time period
   const startDate = getStartDateForPeriod(timePeriod);
   const endDate = new Date();
-  const filteredExpenses = allExpenses.filter((exp) => {
-    const expenseDate = new Date(exp.date);
-    return expenseDate >= startDate && expenseDate <= endDate;
-  });
+  const filteredExpenses = useMemo(() => {
+    return allExpenses.filter((exp) => {
+      const expenseDate = new Date(exp.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+  }, [allExpenses, startDate, endDate]);
 
   // Get category icon
   const getCategoryIcon = (iconName: string) => {
@@ -190,17 +192,13 @@ const DashboardPage: React.FC = () => {
   };
 
   // Expenses Over Time (Line Chart)
-  const expensesOverTimeData = (() => {
-    // Create a map to store expenses by category and date
+  const expensesOverTimeData = useMemo(() => {
     const categoryExpensesMap = new Map<string, Map<string, number>>();
-
-    // Initialize the map with all categories
     categories.forEach((category) => {
       categoryExpensesMap.set(category.name, new Map());
     });
 
     if (timePeriod === "MTD") {
-      // Group by day and category
       filteredExpenses.forEach((exp) => {
         const dayKey = new Date(exp.date).toISOString().split("T")[0];
         const categoryName = exp.categoryName || "Uncategorized";
@@ -209,7 +207,6 @@ const DashboardPage: React.FC = () => {
         categoryExpensesMap.set(categoryName, categoryMap);
       });
 
-      // Fill in missing days for all categories
       const now = new Date();
       const daysInMonth = now.getDate();
       const year = now.getFullYear();
@@ -225,7 +222,6 @@ const DashboardPage: React.FC = () => {
         });
       }
 
-      // Get all unique dates
       const allDates = Array.from(
         new Set(
           Array.from(categoryExpensesMap.values()).flatMap((map) =>
@@ -234,7 +230,6 @@ const DashboardPage: React.FC = () => {
         )
       ).sort();
 
-      // Convert to the format needed for the chart
       return {
         dates: allDates,
         categories: Array.from(categoryExpensesMap.entries()).map(
@@ -244,82 +239,82 @@ const DashboardPage: React.FC = () => {
           })
         ),
       };
-    } else {
-      // Group by month and category
-      filteredExpenses.forEach((exp) => {
-        const date = new Date(exp.date);
-        const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1
-        ).padStart(2, "0")}`;
-        const categoryName = exp.categoryName || "Uncategorized";
-        const categoryMap = categoryExpensesMap.get(categoryName) || new Map();
-        categoryMap.set(
-          monthKey,
-          (categoryMap.get(monthKey) || 0) + exp.amount
-        );
-        categoryExpensesMap.set(categoryName, categoryMap);
-      });
-
-      // Get all unique months
-      const allMonths = Array.from(
-        new Set(
-          Array.from(categoryExpensesMap.values()).flatMap((map) =>
-            Array.from(map.keys())
-          )
-        )
-      ).sort();
-
-      // Convert to the format needed for the chart
-      return {
-        dates: allMonths,
-        categories: Array.from(categoryExpensesMap.entries()).map(
-          ([category, dateMap]) => ({
-            name: category,
-            data: allMonths.map((month) => dateMap.get(month) || 0),
-          })
-        ),
-      };
     }
-  })();
+
+    filteredExpenses.forEach((exp) => {
+      const date = new Date(exp.date);
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+      const categoryName = exp.categoryName || "Uncategorized";
+      const categoryMap = categoryExpensesMap.get(categoryName) || new Map();
+      categoryMap.set(monthKey, (categoryMap.get(monthKey) || 0) + exp.amount);
+      categoryExpensesMap.set(categoryName, categoryMap);
+    });
+
+    const allMonths = Array.from(
+      new Set(
+        Array.from(categoryExpensesMap.values()).flatMap((map) =>
+          Array.from(map.keys())
+        )
+      )
+    ).sort();
+
+    return {
+      dates: allMonths,
+      categories: Array.from(categoryExpensesMap.entries()).map(
+        ([category, dateMap]) => ({
+          name: category,
+          data: allMonths.map((month) => dateMap.get(month) || 0),
+        })
+      ),
+    };
+  }, [filteredExpenses, timePeriod, categories]);
 
   // Pie chart for spending per category (aggregate by category name)
-  const categorySpendingData = filteredExpenses.reduce((acc, expense) => {
-    // Always use category name for aggregation
-    let categoryName = "Uncategorized";
-    if (expense.category) {
-      const category = categories.find((cat) => cat.id === expense.category);
-      categoryName = category
-        ? category.name
-        : expense.categoryName || "Uncategorized";
-    } else if (expense.categoryName) {
-      categoryName = expense.categoryName;
-    }
-    acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
-    return acc;
-  }, {} as { [key: string]: number });
+  const categorySpendingData = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => {
+      let categoryName = "Uncategorized";
+      if (expense.category) {
+        const category = categories.find((cat) => cat.id === expense.category);
+        categoryName = category
+          ? category.name
+          : expense.categoryName || "Uncategorized";
+      } else if (expense.categoryName) {
+        categoryName = expense.categoryName;
+      }
+      acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
+      return acc;
+    }, {} as { [key: string]: number });
+  }, [filteredExpenses, categories]);
 
   // Table for all category spendings
-  const categoryTableData = Object.entries(categorySpendingData)
-    .map(([name, value]) => {
-      const category = categories.find((cat) => cat.name === name);
-      return {
-        name,
-        icon: category ? category.icon : "box",
-        value: Number(value),
-      };
-    })
-    .sort((a, b) => b.value - a.value);
+  const categoryTableData = useMemo(() => {
+    return Object.entries(categorySpendingData)
+      .map(([name, value]) => {
+        const category = categories.find((cat) => cat.name === name);
+        return {
+          name,
+          icon: category ? category.icon : "box",
+          value: Number(value),
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [categorySpendingData, categories]);
 
   // Pie chart data for spending per category
-  const pieChartDataJS = {
-    labels: categoryTableData.map((row) => row.name),
-    datasets: [
-      {
-        data: categoryTableData.map((row) => row.value),
-        backgroundColor: PIE_COLORS,
-      },
-    ],
-  };
+  const pieChartDataJS = useMemo(
+    () => ({
+      labels: categoryTableData.map((row) => row.name),
+      datasets: [
+        {
+          data: categoryTableData.map((row) => row.value),
+          backgroundColor: PIE_COLORS,
+        },
+      ],
+    }),
+    [categoryTableData]
+  );
 
   // Chart.js options
   const pieOptions = {
@@ -432,25 +427,29 @@ const DashboardPage: React.FC = () => {
   }, [categories, categoryTableData]); // Add categories to dependencies
 
   // Update line chart data
-  const lineChartData = {
-    labels: expensesOverTimeData.dates,
-    datasets: categoryTableData
-      .filter((category) => !hiddenCategories.includes(category.name))
-      .map((category, index) => ({
-        label: category.name,
-        data:
-          expensesOverTimeData.categories.find((c) => c.name === category.name)
-            ?.data || [],
-        fill: false,
-        borderColor: PIE_COLORS[index % PIE_COLORS.length],
-        backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
-        tension: 0.3,
-        pointBackgroundColor: PIE_COLORS[index % PIE_COLORS.length],
-        pointBorderColor: "#fff",
-        pointHoverBackgroundColor: "#fff",
-        pointHoverBorderColor: PIE_COLORS[index % PIE_COLORS.length],
-      })),
-  };
+  const lineChartData = useMemo(
+    () => ({
+      labels: expensesOverTimeData.dates,
+      datasets: categoryTableData
+        .filter((category) => !hiddenCategories.includes(category.name))
+        .map((category, index) => ({
+          label: category.name,
+          data:
+            expensesOverTimeData.categories.find(
+              (c) => c.name === category.name
+            )?.data || [],
+          fill: false,
+          borderColor: PIE_COLORS[index % PIE_COLORS.length],
+          backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+          tension: 0.3,
+          pointBackgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+          pointBorderColor: "#fff",
+          pointHoverBackgroundColor: "#fff",
+          pointHoverBorderColor: PIE_COLORS[index % PIE_COLORS.length],
+        })),
+    }),
+    [expensesOverTimeData, categoryTableData, hiddenCategories]
+  );
 
   const handleLineChartRefresh = () => {
     setLineChartKey((prev) => prev + 1);
@@ -565,7 +564,19 @@ const DashboardPage: React.FC = () => {
             </IconButton>
           </Box>
           {loading ? (
-            <Skeleton variant="rectangular" height={350} />
+            <Box
+              sx={{
+                width: "100%",
+                height: 350,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
+              <Skeleton variant="rectangular" height={40} width="60%" />
+              <Skeleton variant="rectangular" height={250} />
+              <Skeleton variant="rectangular" height={40} width="40%" />
+            </Box>
           ) : expensesOverTimeData.dates.length > 0 ? (
             <Box sx={{ width: "100%", height: 350 }}>
               <Line
@@ -641,7 +652,21 @@ const DashboardPage: React.FC = () => {
               </IconButton>
             </Box>
             {loading ? (
-              <Skeleton variant="rectangular" height={400} />
+              <Box
+                sx={{
+                  width: "100%",
+                  height: 400,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                }}
+              >
+                <Skeleton variant="circular" width={200} height={200} />
+                <Skeleton variant="rectangular" width="60%" height={40} />
+                <Skeleton variant="rectangular" width="40%" height={40} />
+              </Box>
             ) : categoryTableData.length > 0 ? (
               <Box
                 sx={{
@@ -679,7 +704,17 @@ const DashboardPage: React.FC = () => {
               Category Spending Table
             </Typography>
             {loading ? (
-              <Skeleton variant="rectangular" height={200} />
+              <Box sx={{ width: "100%" }}>
+                <Skeleton variant="rectangular" height={40} sx={{ mb: 1 }} />
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton
+                    key={i}
+                    variant="rectangular"
+                    height={48}
+                    sx={{ mb: 1 }}
+                  />
+                ))}
+              </Box>
             ) : categoryTableData.length > 0 ? (
               <Paper elevation={0}>
                 <TableContainer className="no-shadow">

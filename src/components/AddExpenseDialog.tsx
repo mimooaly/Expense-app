@@ -27,6 +27,7 @@ interface AddExpenseDialogProps {
   initialValues?: Expense | null;
   isEdit?: boolean;
   onSave?: (values: any) => Promise<void>;
+  emptyExpense: Expense;
 }
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
@@ -35,22 +36,18 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   initialValues,
   isEdit = false,
   onSave,
+  emptyExpense,
 }) => {
   const [error, setError] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [usdAmount, setUsdAmount] = useState<number | null>(null);
-  const [converting, setConverting] = useState(false);
   const categories = useCategories();
   const { preferences } = useUserPreferences();
+  const [usdAmount, setUsdAmount] = useState<number | null>(null);
+  const [converting, setConverting] = useState(false);
 
   const formik = useFormik({
-    initialValues: {
-      name: initialValues?.name || "",
-      category: initialValues?.category || "",
-      amount: initialValues?.amount || "",
-      date: initialValues?.date || new Date().toISOString().slice(0, 10),
-      monthly: initialValues?.monthly || false,
-      currency: initialValues?.currency || "USD",
+    initialValues: initialValues || {
+      ...emptyExpense,
+      currency: preferences?.defaultCurrency || "USD",
     },
     enableReinitialize: true,
     validationSchema: Yup.object({
@@ -63,18 +60,20 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     onSubmit: async (values) => {
       if (onSave) {
         try {
+          setError("");
           const amountToSave =
             usdAmount !== null ? usdAmount : Number(values.amount);
           await onSave({
             ...values,
             amount: amountToSave,
-            currency: "USD",
+            currency: values.currency,
             id: initialValues?.id,
+            category: values.category.toString(),
           });
-          setError("");
           onClose();
         } catch (error) {
-          setError("Error saving expense. Please try again later.");
+          console.error("Error saving expense:", error);
+          setError("Error saving expense. Please try again.");
         }
       }
     },
@@ -118,25 +117,23 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     if (formik.values.amount && !isNaN(Number(formik.values.amount))) {
       convertToPreferredCurrency(
         Number(formik.values.amount),
-        currency,
+        formik.values.currency,
         preferences.defaultCurrency
       );
     } else {
       setUsdAmount(null);
     }
-  }, [formik.values.amount, currency, preferences.defaultCurrency]);
+  }, [
+    formik.values.amount,
+    formik.values.currency,
+    preferences.defaultCurrency,
+  ]);
 
   useEffect(() => {
     if (initialValues) {
       console.log("Initial values for edit:", initialValues);
     }
   }, [initialValues]);
-
-  useEffect(() => {
-    if (!isEdit) {
-      setCurrency(preferences.defaultCurrency);
-    }
-  }, [preferences.defaultCurrency, isEdit]);
 
   const getCategoryIcon = (iconName: string) => {
     if (iconName === "folder") {
@@ -170,6 +167,11 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       <DialogTitle>{isEdit ? "Edit Expense" : "Add New Expense"}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 1 }}>
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
           <TextField
             fullWidth
             margin="normal"
@@ -197,7 +199,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
           >
             <MenuItem value="">Select Category</MenuItem>
             {categories.map((cat) => (
-              <MenuItem key={cat.id} value={cat.id}>
+              <MenuItem key={cat.id} value={cat.id.toString()}>
                 {getCategoryIcon(cat.icon)}
                 {cat.name}
               </MenuItem>
@@ -208,8 +210,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
               select
               label="Currency"
               size="small"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              value={formik.values.currency}
+              onChange={(e) => formik.setFieldValue("currency", e.target.value)}
               sx={{ minWidth: 90 }}
             >
               {currencyOptions.map((opt) => (
@@ -231,41 +233,42 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
               helperText={formik.touched.amount && formik.errors.amount}
             />
           </Box>
-          {usdAmount !== null && currency !== preferences.defaultCurrency && (
-            <Box
-              sx={{
-                mt: 1,
-                mb: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                color: "text.secondary",
-                fontSize: "0.875rem",
-              }}
-            >
-              {converting ? (
-                <CircularProgress size={16} />
-              ) : (
-                <>
-                  <span>≈</span>
-                  <strong>
-                    {usdAmount.toFixed(2)} {preferences.defaultCurrency}
-                  </strong>
-                  {error && (
-                    <span
-                      style={{
-                        color: "error.main",
-                        fontSize: "0.75rem",
-                        marginLeft: "8px",
-                      }}
-                    >
-                      {error}
-                    </span>
-                  )}
-                </>
-              )}
-            </Box>
-          )}
+          {usdAmount !== null &&
+            formik.values.currency !== preferences.defaultCurrency && (
+              <Box
+                sx={{
+                  mt: 1,
+                  mb: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  color: "text.secondary",
+                  fontSize: "0.875rem",
+                }}
+              >
+                {converting ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <>
+                    <span>≈</span>
+                    <strong>
+                      {usdAmount.toFixed(2)} {preferences.defaultCurrency}
+                    </strong>
+                    {error && (
+                      <span
+                        style={{
+                          color: "error.main",
+                          fontSize: "0.75rem",
+                          marginLeft: "8px",
+                        }}
+                      >
+                        {error}
+                      </span>
+                    )}
+                  </>
+                )}
+              </Box>
+            )}
           <TextField
             fullWidth
             margin="normal"
@@ -290,11 +293,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             }
             label="Recurring Expense"
           />
-          {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
         </Box>
       </DialogContent>
       <DialogActions>

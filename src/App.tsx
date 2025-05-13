@@ -1,17 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import { HelmetProvider } from "react-helmet-async";
-import Login from "./Login";
-import Register from "./Register";
-import Dashboard from "./Dashboard";
-import ExpensesList from "./ExpensesList";
-import LandingPage from "./LandingPage";
-import Support from "./Support";
-import Header from "./components/Header";
-import Settings from "./Settings";
-import { Analytics } from "@vercel/analytics/react";
-import GoogleAnalytics from "./components/GoogleAnalytics";
+import { RouterProvider } from "react-router-dom";
+import router from "./router";
 
 const theme = createTheme({
   palette: {
@@ -32,20 +23,7 @@ function App() {
     <HelmetProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Router>
-          <GoogleAnalytics />
-          <Header />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/expenses" element={<ExpensesList />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Router>
-        <Analytics />
+        <RouterProvider router={router} />
       </ThemeProvider>
     </HelmetProvider>
   );

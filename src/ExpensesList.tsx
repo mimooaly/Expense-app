@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { database, auth } from "./firebaseConfig";
-import { ref, onValue, push, remove, update, get } from "firebase/database";
+import { ref, push, remove, update, get, onValue } from "firebase/database";
 import "./App.css";
 import emptyImage from "./assets/empty.png";
 import {
@@ -32,6 +38,7 @@ import {
   Divider,
   Tooltip,
   Checkbox,
+  CircularProgress,
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -62,6 +69,11 @@ export interface Expense {
   isPaused: boolean;
   nextDate: string;
   currency: string;
+}
+
+interface User {
+  uid: string;
+  displayName: string | null;
 }
 
 interface ExpensesTableProps {
@@ -399,182 +411,205 @@ const exportToCSV = (expenses: Expense[], currency: string) => {
   document.body.removeChild(link);
 };
 
+const emptyExpense = {
+  id: "",
+  name: "",
+  category: "",
+  amount: 0,
+  date: new Date().toISOString().slice(0, 10),
+  monthly: false,
+  categoryName: "",
+  lastAdded: "",
+  startDate: "",
+  isPaused: false,
+  nextDate: "",
+  currency: "USD",
+};
+
 export default function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const currentDate = new Date();
-  const [filters, setFilters] = useState({
-    category: "",
-    month: currentDate.getMonth() + 1, // Current month (1-12)
-    year: currentDate.getFullYear(), // Current year
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-  const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [open, setOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [bulkActionAnchor, setBulkActionAnchor] = useState<null | HTMLElement>(
-    null
-  );
-  const [isBulkCategoryDialogOpen, setIsBulkCategoryDialogOpen] =
-    useState(false);
-  const [isBulkAmountDialogOpen, setIsBulkAmountDialogOpen] = useState(false);
-  const [isBulkDateDialogOpen, setIsBulkDateDialogOpen] = useState(false);
-  const [isBulkRecurringDialogOpen, setIsBulkRecurringDialogOpen] =
-    useState(false);
-  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
-  const categories = useCategories();
-  const { preferences } = useUserPreferences();
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [bulkActionAnchorEl, setBulkActionAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [bulkEditType, setBulkEditType] = useState<
+    "category" | "amount" | "date" | "recurring" | null
+  >(null);
+  const [extraCategoryNames, setExtraCategoryNames] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isToolbarFixed, setIsToolbarFixed] = useState(false);
-  const tableHeaderRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchExpenses = (user: any) => {
-      if (!user) {
-        setExpenses([]);
-        return;
-      }
-
-      const expensesRef = ref(database, `expenses/${user.uid}`);
-      const userPrefsRef = ref(
-        database,
-        `userPreferences/${user.uid}/modifiedCategories`
-      );
-
-      const unsubscribe = onValue(expensesRef, async (snapshot: any) => {
-        const data = snapshot.val();
-        if (data) {
-          // Get modified categories
-          const prefsSnapshot = await get(userPrefsRef);
-          const modifiedCategories = prefsSnapshot.val() || {};
-
-          const expensesList = await Promise.all(
-            Object.entries(data).map(async ([id, value]: [string, any]) => {
-              // Get category name based on whether it's a custom or default category
-              let categoryName = "";
-              if (value?.category) {
-                if (value.category.startsWith("custom_")) {
-                  // For custom categories, get the name from the customCategories node
-                  const customCategoryRef = ref(
-                    database,
-                    `customCategories/${user.uid}/${value.category.replace(
-                      "custom_",
-                      ""
-                    )}`
-                  );
-                  const snapshot = await get(customCategoryRef);
-                  if (snapshot.exists()) {
-                    categoryName = snapshot.val().name;
-                  }
-                } else {
-                  // For default categories, check modified categories first
-                  const modifiedCategory = modifiedCategories[value.category];
-                  if (modifiedCategory) {
-                    categoryName = modifiedCategory.name;
-                  } else {
-                    // If not modified, get from expensesCateg
-                    categoryName =
-                      expensesCateg.find(
-                        (cat) => cat.id === parseInt(value.category)
-                      )?.name || "";
-                  }
-                }
-              }
-
-              return {
-                id,
-                ...value,
-                categoryName: categoryName || "Uncategorized",
-              };
-            })
-          );
-
-          // Handle duplicate recurring expenses
-          const recurringExpensesMap = new Map<string, Expense>();
-
-          // First pass: find duplicates and keep the one with highest amount
-          expensesList.forEach((expense) => {
-            if (expense.monthly) {
-              const key = `${expense.name}_${expense.category}`;
-              const existing = recurringExpensesMap.get(key);
-
-              if (!existing || expense.amount > existing.amount) {
-                recurringExpensesMap.set(key, expense);
-              }
-            }
-          });
-
-          // Second pass: mark duplicates as non-recurring
-          const updatedExpenses = await Promise.all(
-            expensesList.map(async (expense) => {
-              if (expense.monthly) {
-                const key = `${expense.name}_${expense.category}`;
-                const highestAmountExpense = recurringExpensesMap.get(key);
-
-                if (
-                  highestAmountExpense &&
-                  highestAmountExpense.id !== expense.id
-                ) {
-                  // This is a duplicate, mark it as non-recurring
-                  try {
-                    await update(
-                      ref(database, `expenses/${user.uid}/${expense.id}`),
-                      {
-                        monthly: false,
-                      }
-                    );
-                    return { ...expense, monthly: false };
-                  } catch (error) {
-                    console.error("Error updating duplicate expense:", error);
-                    return expense;
-                  }
-                }
-              }
-              return expense;
-            })
-          );
-
-          setExpenses(updatedExpenses);
-        } else {
-          setExpenses([]);
-        }
-      });
-
-      return unsubscribe;
-    };
-
-    // Initial fetch
-    const user = auth.currentUser;
-    const unsubscribe = fetchExpenses(user);
-
-    // Listen for auth state changes
-    const unsubscribeAuth = onAuthStateChanged(auth, (user: any) => {
-      fetchExpenses(user);
-    });
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-      unsubscribeAuth();
-    };
-  }, []);
+  const tableHeaderRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
+  const { preferences } = useUserPreferences();
+  const [initialValues, setInitialValues] = useState<Expense | null>(null);
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       if (tableHeaderRef.current) {
-        const headerBottom =
-          tableHeaderRef.current.getBoundingClientRect().bottom;
-        setIsToolbarFixed(headerBottom < 0);
+        const rect = tableHeaderRef.current.getBoundingClientRect();
+        setIsToolbarFixed(rect.bottom < 0);
       }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const categories = useCategories();
+
+  const fetchExpenses = useCallback((user: User) => {
+    setLoading(true);
+    const expensesRef = ref(database, `expenses/${user.uid}`);
+
+    // Add connection state listener
+    const connectedRef = ref(database, ".info/connected");
+    const connectedUnsubscribe = onValue(
+      connectedRef,
+      (snap: { val: () => boolean }) => {
+        if (snap.val() === false) {
+          console.log("Not connected to Firebase");
+          setLoading(false);
+        }
+      }
+    );
+
+    const unsubscribe = onValue(
+      expensesRef,
+      (snapshot: any) => {
+        try {
+          if (snapshot.exists()) {
+            const expensesData = snapshot.val();
+            const expensesArray = Object.entries(expensesData).map(
+              ([id, data]: [string, any]) => ({
+                id,
+                ...data,
+              })
+            );
+            setExpenses(expensesArray);
+
+            // Extract unique category names for backward compatibility
+            const uniqueCategories = new Set(
+              expensesArray.map((exp) => exp.categoryName)
+            );
+            setExtraCategoryNames(Array.from(uniqueCategories));
+          } else {
+            setExpenses([]);
+            setExtraCategoryNames([]);
+          }
+        } catch (error: unknown) {
+          console.error("Error processing expenses data:", error);
+        } finally {
+          setLoading(false);
+        }
+      },
+      (error: Error) => {
+        console.error("Error fetching expenses:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      connectedUnsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    const authUnsubscribe = onAuthStateChanged(auth, (user: User) => {
+      if (user) {
+        unsubscribe = fetchExpenses(user);
+      } else {
+        setLoading(false);
+        setExpenses([]);
+      }
+    });
+
+    return () => {
+      authUnsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [fetchExpenses]);
+
+  // Memoize filtered expenses to prevent unnecessary recalculations
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      // Category: "" means All
+      const matchesCategory =
+        !selectedCategory ||
+        expense.categoryName === selectedCategory ||
+        expense.category === selectedCategory;
+
+      // Month: 0 means All
+      const expenseMonth = new Date(expense.date).getMonth() + 1;
+      const matchesMonth =
+        !selectedMonth || expenseMonth === Number(selectedMonth);
+
+      // Year: 0 means All
+      const expenseYear = new Date(expense.date).getFullYear();
+      const matchesYear = !selectedYear || expenseYear === Number(selectedYear);
+
+      // Search (if you want to keep it)
+      const search = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !search ||
+        expense.name.toLowerCase().includes(search) ||
+        (expense.categoryName &&
+          expense.categoryName.toLowerCase().includes(search));
+
+      return matchesCategory && matchesMonth && matchesYear && matchesSearch;
+    });
+  }, [expenses, selectedCategory, selectedMonth, selectedYear, searchQuery]);
+
+  // Memoize recurring expenses
+  const recurringExpenses = useMemo(
+    () => expenses.filter((e) => e.monthly),
+    [expenses]
+  );
+
+  // Memoize total amount calculation
+  const totalAmount = useMemo(
+    () => filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0),
+    [filteredExpenses]
+  );
+
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleCategoryChange = useCallback((category: string) => {
+    setSelectedCategory(category);
+  }, []);
+
+  const handleMonthChange = useCallback((month: number) => {
+    setSelectedMonth(month);
+  }, []);
+
+  const handleYearChange = useCallback((year: number) => {
+    setSelectedYear(year);
+  }, []);
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  const handleOpen = () => {
+    setInitialValues(null);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const handleAddExpense = async (values: any) => {
     const user = auth.currentUser;
@@ -642,50 +677,47 @@ export default function ExpensesList() {
 
       // Push the new expense to Firebase
       await push(ref(database, `expenses/${user.uid}`), newExpense);
-      setIsAddDialogOpen(false);
+      setOpen(false);
     } catch (error) {
       console.error("Error adding expense:", error);
     }
   };
 
   const handleDeleteClick = (id: string) => {
-    setExpenseToDelete(id);
-    setIsDeleteDialogOpen(true);
+    setDeleteId(id);
+    setIsBulkDelete(false);
+    setShowDeleteDialog(true);
+  };
+
+  const handleBulkDeleteClick = () => {
+    setIsBulkDelete(true);
+    setShowDeleteDialog(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!expenseToDelete) return;
+    if (!deleteId) return;
 
     const user = auth.currentUser;
     if (!user) return;
 
     try {
-      await remove(ref(database, `expenses/${user.uid}/${expenseToDelete}`));
-      setIsDeleteDialogOpen(false);
-      setExpenseToDelete(null);
+      await remove(ref(database, `expenses/${user.uid}/${deleteId}`));
+      setShowDeleteDialog(false);
+      setDeleteId(null);
     } catch (error) {
-      console.error("Error deleting expense:", error);
+      setShowDeleteDialog(false);
+      setDeleteId(null);
     }
   };
 
   const handleDeleteCancel = () => {
-    setIsDeleteDialogOpen(false);
-    setExpenseToDelete(null);
+    setShowDeleteDialog(false);
+    setDeleteId(null);
   };
 
   const handleEditClick = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleOpen = () => {
-    setIsAddDialogOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsAddDialogOpen(false);
-    setIsEditDialogOpen(false);
-    setSelectedExpense(null);
+    setInitialValues(expense);
+    setOpen(true);
   };
 
   const handleEdit = async (expense: Expense) => {
@@ -728,41 +760,11 @@ export default function ExpensesList() {
       };
 
       await update(expenseRef, updates);
-      setIsEditDialogOpen(false);
-      setSelectedExpense(null);
+      setOpen(false);
     } catch (error) {
       console.error("Error updating expense:", error);
     }
   };
-
-  const filteredExpenses = expenses.filter((expense) => {
-    // Category: "" means All
-    const matchesCategory =
-      !filters.category ||
-      expense.categoryName === filters.category ||
-      expense.category === filters.category;
-
-    // Month: 0 means All
-    const expenseMonth = new Date(expense.date).getMonth() + 1;
-    const matchesMonth =
-      !filters.month || expenseMonth === Number(filters.month);
-
-    // Year: 0 means All
-    const expenseYear = new Date(expense.date).getFullYear();
-    const matchesYear = !filters.year || expenseYear === Number(filters.year);
-
-    // Search (if you want to keep it)
-    const search = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !search ||
-      expense.name.toLowerCase().includes(search) ||
-      (expense.categoryName &&
-        expense.categoryName.toLowerCase().includes(search));
-
-    return matchesCategory && matchesMonth && matchesYear && matchesSearch;
-  });
-
-  const recurringExpenses = expenses.filter((e) => e.monthly);
 
   // Handler to mark a recurring expense as not monthly
   const handleDisableRecurring = async (expense: Expense) => {
@@ -927,11 +929,11 @@ export default function ExpensesList() {
   };
 
   const handleBulkActionClick = (event: React.MouseEvent<HTMLElement>) => {
-    setBulkActionAnchor(event.currentTarget);
+    setBulkActionAnchorEl(event.currentTarget);
   };
 
   const handleBulkActionClose = () => {
-    setBulkActionAnchor(null);
+    setBulkActionAnchorEl(null);
   };
 
   const handleBulkCategoryChange = async (categoryId: string) => {
@@ -939,12 +941,32 @@ export default function ExpensesList() {
     if (!user) return;
 
     try {
+      // Get category name based on whether it's a custom or default category
+      let categoryName = "";
+      if (categoryId.startsWith("custom_")) {
+        // For custom categories, get the name from the customCategories node
+        const customCategoryRef = ref(
+          database,
+          `customCategories/${user.uid}/${categoryId.replace("custom_", "")}`
+        );
+        const snapshot = await get(customCategoryRef);
+        if (snapshot.exists()) {
+          categoryName = snapshot.val().name;
+        }
+      } else {
+        // For default categories, get the name from expensesCateg
+        categoryName =
+          expensesCateg.find((cat) => cat.id === parseInt(categoryId))?.name ||
+          "";
+      }
+
       const updates: { [key: string]: any } = {};
       selected.forEach((id) => {
         updates[`expenses/${user.uid}/${id}/category`] = categoryId;
+        updates[`expenses/${user.uid}/${id}/categoryName`] = categoryName;
       });
       await update(ref(database), updates);
-      setIsBulkCategoryDialogOpen(false);
+      setBulkEditType(null);
       setSelected([]);
     } catch (error) {
       console.error("Error updating categories:", error);
@@ -961,7 +983,6 @@ export default function ExpensesList() {
         updates[`expenses/${user.uid}/${id}/amount`] = amount;
       });
       await update(ref(database), updates);
-      setIsBulkAmountDialogOpen(false);
       setSelected([]);
     } catch (error) {
       console.error("Error updating amounts:", error);
@@ -978,7 +999,6 @@ export default function ExpensesList() {
         updates[`expenses/${user.uid}/${id}/date`] = date;
       });
       await update(ref(database), updates);
-      setIsBulkDateDialogOpen(false);
       setSelected([]);
     } catch (error) {
       console.error("Error updating dates:", error);
@@ -995,7 +1015,6 @@ export default function ExpensesList() {
         updates[`expenses/${user.uid}/${id}/monthly`] = isRecurring;
       });
       await update(ref(database), updates);
-      setIsBulkRecurringDialogOpen(false);
       setSelected([]);
     } catch (error) {
       console.error("Error updating recurring status:", error);
@@ -1003,6 +1022,7 @@ export default function ExpensesList() {
   };
 
   const handleBulkDelete = async () => {
+    setShowDeleteDialog(false);
     const user = auth.currentUser;
     if (!user) return;
 
@@ -1012,7 +1032,6 @@ export default function ExpensesList() {
         updates[`expenses/${user.uid}/${id}`] = null;
       });
       await update(ref(database), updates);
-      setIsBulkDeleteDialogOpen(false);
       setSelected([]);
     } catch (error) {
       console.error("Error deleting expenses:", error);
@@ -1068,7 +1087,7 @@ export default function ExpensesList() {
           <Box margin={0}>
             <Button
               variant="text"
-              onClick={() => setIsRecurringDialogOpen(true)}
+              onClick={() => setShowRecurringDialog(true)}
               className="manage-recurring-button"
               sx={{
                 mr: 2,
@@ -1089,173 +1108,170 @@ export default function ExpensesList() {
           </Box>
         </Box>
 
-        <Box ref={tableHeaderRef}>
-          {isMobile ? (
-            <Accordion
-              sx={{
-                mb: 2,
-                boxShadow: "none",
-                "&:before": { display: "none" },
-                border: "1px solid rgba(0, 0, 0, 0.12)",
-                borderRadius: 1,
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls="filters-search-panel-content"
-                id="filters-search-panel-header"
+        {!loading && (
+          <Box ref={tableHeaderRef}>
+            {isMobile ? (
+              <Accordion
+                sx={{
+                  mb: 2,
+                  boxShadow: "none",
+                  "&:before": { display: "none" },
+                  border: "1px solid rgba(0, 0, 0, 0.12)",
+                  borderRadius: 1,
+                }}
               >
-                <Typography>Filters & Search</Typography>
-              </AccordionSummary>
-              <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2,
-                    padding: 1,
-                  }}
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  aria-controls="filters-search-panel-content"
+                  id="filters-search-panel-header"
                 >
-                  <TextField
-                    fullWidth
-                    placeholder="Search expenses..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                  <Typography>Filters & Search</Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
+                  <Box
                     sx={{
-                      marginBottom: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                      padding: 1,
                     }}
-                    size="small"
-                    slotProps={{
-                      input: {
+                  >
+                    <TextField
+                      fullWidth
+                      placeholder="Search expenses..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      sx={{
+                        marginBottom: 1,
+                      }}
+                      size="small"
+                      InputProps={{
                         startAdornment: (
                           <FeatherIcons.Search
                             size={20}
                             style={{ marginRight: 8 }}
                           />
                         ),
-                      },
-                    }}
-                  />
-                  <ExpensesFilter
-                    category={filters.category}
-                    month={filters.month}
-                    year={filters.year}
-                    categories={categories}
-                    onCategoryChange={(category) =>
-                      setFilters({ ...filters, category })
-                    }
-                    onMonthChange={(month) => setFilters({ ...filters, month })}
-                    onYearChange={(year) => setFilters({ ...filters, year })}
-                  />
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          ) : (
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder="Search expenses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                slotProps={{
-                  input: {
+                      }}
+                    />
+                    <ExpensesFilter
+                      category={selectedCategory}
+                      month={selectedMonth}
+                      year={selectedYear}
+                      categories={categories}
+                      extraCategoryNames={extraCategoryNames}
+                      onCategoryChange={handleCategoryChange}
+                      onMonthChange={handleMonthChange}
+                      onYearChange={handleYearChange}
+                    />
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            ) : (
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search expenses..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  InputProps={{
                     startAdornment: (
                       <FeatherIcons.Search
                         size={20}
                         style={{ marginRight: 8 }}
                       />
                     ),
-                  },
-                }}
-              />
-            </Box>
-          )}
-
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              justifyContent: "space-between",
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: { xs: 2, sm: 0 },
-              mb: 2,
-            }}
-          >
-            {!isMobile && (
-              <ExpensesFilter
-                category={filters.category}
-                month={filters.month}
-                year={filters.year}
-                categories={categories}
-                onCategoryChange={(category) =>
-                  setFilters({ ...filters, category })
-                }
-                onMonthChange={(month) => setFilters({ ...filters, month })}
-                onYearChange={(year) => setFilters({ ...filters, year })}
-              />
+                  }}
+                />
+              </Box>
             )}
+
             <Box
               sx={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: { xs: "center", sm: "flex-start" },
-                width: { xs: "100%", sm: "auto" },
-                gap: 2,
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "stretch", sm: "center" },
+                gap: { xs: 2, sm: 0 },
+                mb: 2,
               }}
             >
-              <Box className="total-amount-display-wrapper">
-                <Divider className="total-amount-divider" />
-                <Typography
-                  className="total-amount-display"
-                  variant="body2"
-                  fontWeight="bold"
-                >
-                  Total{" "}
-                  {filteredExpenses
-                    .reduce((sum, exp) => sum + exp.amount, 0)
-                    .toLocaleString(undefined, {
+              {!isMobile && (
+                <ExpensesFilter
+                  category={selectedCategory}
+                  month={selectedMonth}
+                  year={selectedYear}
+                  categories={categories}
+                  extraCategoryNames={extraCategoryNames}
+                  onCategoryChange={handleCategoryChange}
+                  onMonthChange={handleMonthChange}
+                  onYearChange={handleYearChange}
+                />
+              )}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: { xs: "center", sm: "flex-start" },
+                  width: { xs: "100%", sm: "auto" },
+                  gap: 2,
+                }}
+              >
+                <Box className="total-amount-display-wrapper">
+                  <Divider className="total-amount-divider" />
+                  <Typography
+                    className="total-amount-display"
+                    variant="body2"
+                    fontWeight="bold"
+                  >
+                    Total{" "}
+                    {totalAmount.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
-                  {preferences.defaultCurrency}
-                </Typography>
-              </Box>
-              {!isMobile && (
-                <Tooltip title="Export to Excel">
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() =>
-                      exportToCSV(filteredExpenses, preferences.defaultCurrency)
-                    }
-                    sx={{
-                      color: "primary.dark",
-                      marginBottom: 1,
-                    }}
-                  >
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    {preferences.defaultCurrency}
+                  </Typography>
+                </Box>
+                {!isMobile && (
+                  <Tooltip title="Export to Excel">
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() =>
+                        exportToCSV(
+                          filteredExpenses,
+                          preferences.defaultCurrency
+                        )
+                      }
+                      sx={{
+                        color: "primary.dark",
+                        marginBottom: 1,
+                      }}
                     >
-                      <FeatherIcons.FileText size={18} />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: "0.875rem",
-                          width: "100px",
-                          marginRight: "20px",
-                        }}
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                       >
-                        Export CSV
-                      </Typography>
-                    </Box>
-                  </Button>
-                </Tooltip>
-              )}
+                        <FeatherIcons.FileText size={18} />
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: "0.875rem",
+                            width: "100px",
+                            marginRight: "20px",
+                          }}
+                        >
+                          Export CSV
+                        </Typography>
+                      </Box>
+                    </Button>
+                  </Tooltip>
+                )}
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )}
 
-        {selected.length > 0 && (
+        {selected.length > 0 && !loading && (
           <Box
             sx={{
               position: isToolbarFixed ? "fixed" : "relative",
@@ -1277,20 +1293,31 @@ export default function ExpensesList() {
                 totalCount={filteredExpenses.length}
                 onBulkActionClick={handleBulkActionClick}
                 onBulkActionClose={handleBulkActionClose}
-                onCategoryClick={() => setIsBulkCategoryDialogOpen(true)}
-                onAmountClick={() => setIsBulkAmountDialogOpen(true)}
-                onDateClick={() => setIsBulkDateDialogOpen(true)}
-                onRecurringClick={() => setIsBulkRecurringDialogOpen(true)}
-                onDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
+                onCategoryClick={() => setBulkEditType("category")}
+                onAmountClick={() => setBulkEditType("amount")}
+                onDateClick={() => setBulkEditType("date")}
+                onRecurringClick={() => setBulkEditType("recurring")}
+                onDeleteClick={handleBulkDeleteClick}
                 onSelectAll={handleSelectAll}
-                anchorEl={bulkActionAnchor}
+                anchorEl={bulkActionAnchorEl}
               />
             </Container>
           </Box>
         )}
 
         <Box sx={{ mt: selected.length > 0 && isToolbarFixed ? "48px" : 0 }}>
-          {filteredExpenses.length === 0 ? (
+          {loading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "200px",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : filteredExpenses.length === 0 ? (
             <Box sx={{ textAlign: "center", mt: 4 }}>
               <img src={emptyImage} alt="No expenses" style={{ width: 200 }} />
               <Typography variant="h6" sx={{ mt: 2 }}>
@@ -1319,73 +1346,52 @@ export default function ExpensesList() {
         </Box>
 
         <AddExpenseDialog
-          open={isAddDialogOpen}
+          open={open}
           onClose={handleClose}
-          onSave={handleAddExpense}
+          onSave={initialValues ? handleEdit : handleAddExpense}
+          initialValues={initialValues}
+          emptyExpense={emptyExpense}
+          isEdit={!!initialValues}
         />
 
-        <AddExpenseDialog
-          open={isEditDialogOpen}
-          onClose={handleClose}
-          onSave={handleEdit}
-          isEdit
-          initialValues={selectedExpense}
-        />
-
-        <Dialog open={isDeleteDialogOpen} onClose={handleDeleteCancel}>
-          <DialogTitle>Delete Expense</DialogTitle>
+        <Dialog open={showDeleteDialog} onClose={handleDeleteCancel}>
+          <DialogTitle>Delete Expense{isBulkDelete ? "s" : ""}</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete this expense?
+              {isBulkDelete
+                ? "Are you sure you want to delete the selected expenses?"
+                : "Are you sure you want to delete this expense?"}
             </Typography>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleDeleteCancel}>Cancel</Button>
-            <Button onClick={handleDeleteConfirm} color="error">
+            <Button
+              onClick={isBulkDelete ? handleBulkDelete : handleDeleteConfirm}
+              color="error"
+            >
               Delete
             </Button>
           </DialogActions>
         </Dialog>
 
         <RecurringExpensesDialog
-          open={isRecurringDialogOpen}
-          onClose={() => setIsRecurringDialogOpen(false)}
+          open={showRecurringDialog}
+          onClose={() => setShowRecurringDialog(false)}
           recurringExpenses={recurringExpenses}
           onTogglePause={handleTogglePause}
           onDisableRecurring={handleDisableRecurring}
           isExpenseInCurrentMonth={isExpenseInCurrentMonth}
         />
 
-        <Dialog
-          open={isBulkDeleteDialogOpen}
-          onClose={() => setIsBulkDeleteDialogOpen(false)}
-        >
-          <DialogTitle>Delete Selected Expenses</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete {selected.length} selected expense
-              {selected.length !== 1 ? "s" : ""}? This action cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsBulkDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleBulkDelete} color="error">
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         <BulkEditDialogs
-          isCategoryDialogOpen={isBulkCategoryDialogOpen}
-          isAmountDialogOpen={isBulkAmountDialogOpen}
-          isDateDialogOpen={isBulkDateDialogOpen}
-          isRecurringDialogOpen={isBulkRecurringDialogOpen}
-          onCategoryDialogClose={() => setIsBulkCategoryDialogOpen(false)}
-          onAmountDialogClose={() => setIsBulkAmountDialogOpen(false)}
-          onDateDialogClose={() => setIsBulkDateDialogOpen(false)}
-          onRecurringDialogClose={() => setIsBulkRecurringDialogOpen(false)}
+          isCategoryDialogOpen={bulkEditType === "category"}
+          isAmountDialogOpen={bulkEditType === "amount"}
+          isDateDialogOpen={bulkEditType === "date"}
+          isRecurringDialogOpen={bulkEditType === "recurring"}
+          onCategoryDialogClose={() => setBulkEditType(null)}
+          onAmountDialogClose={() => setBulkEditType(null)}
+          onDateDialogClose={() => setBulkEditType(null)}
+          onRecurringDialogClose={() => setBulkEditType(null)}
           onCategoryChange={handleBulkCategoryChange}
           onAmountChange={handleBulkAmountChange}
           onDateChange={handleBulkDateChange}
