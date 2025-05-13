@@ -27,6 +27,8 @@ import {
   Home,
   Info,
   User,
+  FileText,
+  RefreshCw,
 } from "react-feather";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -549,34 +551,34 @@ const LandingPage: React.FC = () => {
                 ]}
               >
                 <BenefitCard
-                  icon={<Smartphone size={32} color="#57A556" />}
-                  title="Access from anywhere"
-                  description="Track your expenses on the go with our intuitive mobile interface, perfect for quick cash expense logging."
+                  icon={<List size={32} color="#B6A800" />}
+                  title="Customizable Categories"
+                  description="Create and customize your expense categories with emojis to make tracking more personal and intuitive."
+                />
+                <BenefitCard
+                  icon={<RefreshCw size={32} color="#57A556" />}
+                  title="Auto Recurring Expenses"
+                  description="Set up recurring expenses that are automatically added each month, saving you time and ensuring you never miss a payment."
                 />
                 <BenefitCard
                   icon={<Globe size={32} color="#B6A800" />}
-                  title="Built for Cash-Centric Countries"
-                  description="Specifically designed for regions where cash transactions are predominant, making expense tracking accessible to everyone."
+                  title="16 Currencies Support"
+                  description="Track expenses in 16 different currencies, perfect for international users or those dealing with multiple currencies."
                 />
                 <BenefitCard
-                  icon={<Lock size={32} color="#57A556" />}
-                  title="Free & Secure"
-                  description="Completely free to use with secure data storage, ensuring your financial information stays private."
+                  icon={<FileText size={32} color="#57A556" />}
+                  title="Export to CSV"
+                  description="Export your expense data to CSV format anytime, giving you full control over your financial records."
                 />
                 <BenefitCard
-                  icon={<BarChart2 size={32} color="#B6A800" />}
-                  title="Smart Analytics"
-                  description="Visualize your spending patterns with interactive charts and insights to make better financial decisions."
+                  icon={<Lock size={32} color="#B6A800" />}
+                  title="Private & Secure"
+                  description="Your data stays private. We don't share or sell your information to third parties and we only require your name and email for registration."
                 />
                 <BenefitCard
-                  icon={<List size={32} color="#57A556" />}
-                  title="Simple Categorization"
-                  description="Easily categorize your expenses to understand where your money goes and identify areas for improvement."
-                />
-                <BenefitCard
-                  icon={<DollarSign size={32} color="#B6A800" />}
-                  title="Financial Health Focus"
-                  description="Promote better financial habits through regular expense tracking and spending pattern analysis."
+                  icon={<DollarSign size={32} color="#57A556" />}
+                  title="100% Free"
+                  description="Completely free to use with no hidden fees or premium features. Track your expenses without spending a penny."
                 />
               </Slider>
             </Box>

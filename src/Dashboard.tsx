@@ -445,9 +445,7 @@ const DashboardPage: React.FC = () => {
         sx={{ mt: 4, mb: 4 }}
         className="marginContainer"
       >
-        <Typography variant="h6" align="center" sx={{ mt: 4 }}>
-          Please log in to view the dashboard.
-        </Typography>
+        <Typography variant="h6" align="center" sx={{ mt: 4 }}></Typography>
       </Container>
     );
   }
