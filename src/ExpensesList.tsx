@@ -432,7 +432,7 @@ export default function ExpensesList() {
   }, []);
 
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const categories = useCategories();
+  const categories = useCategories(preferences.hiddenCategories || []);
 
   const fetchExpenses = useCallback((user: User) => {
     setLoading(true);
