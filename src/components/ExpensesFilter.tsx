@@ -91,19 +91,32 @@ const ExpensesFilter: React.FC<ExpensesFilterProps> = ({
       >
         <MenuItem value="">All</MenuItem>
         {categories.map((cat) => (
-          <MenuItem key={cat.id} value={cat.name}>
+          <MenuItem key={cat.id} value={cat.id}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {getCategoryIcon(cat)}
               {cat.name}
             </Box>
           </MenuItem>
         ))}
-        {/* Extra category names for backward compatibility */}
-        {extraCategoryNames.map((catName) => (
-          <MenuItem key={catName} value={catName}>
-            {catName}
-          </MenuItem>
-        ))}
+        {/* Extra category names for backward compatibility - only show if not in main categories */}
+        {extraCategoryNames
+          .filter((catName) => !categories.some((cat) => cat.name === catName))
+          .map((catName) => (
+            <MenuItem key={catName} value={catName}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <span
+                  style={{
+                    fontSize: 20,
+                    marginRight: 8,
+                    verticalAlign: "middle",
+                  }}
+                >
+                  📁
+                </span>
+                {catName}
+              </Box>
+            </MenuItem>
+          ))}
       </TextField>
       <TextField
         select

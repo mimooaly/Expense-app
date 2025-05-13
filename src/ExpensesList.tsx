@@ -451,7 +451,7 @@ export default function ExpensesList() {
 
     const unsubscribe = onValue(
       expensesRef,
-      (snapshot: any) => {
+      async (snapshot: any) => {
         try {
           if (snapshot.exists()) {
             const expensesData = snapshot.val();
@@ -463,9 +463,23 @@ export default function ExpensesList() {
             );
             setExpenses(expensesArray);
 
-            // Extract unique category names for backward compatibility
+            // Get custom categories
+            const customCategoriesRef = ref(
+              database,
+              `customCategories/${user.uid}`
+            );
+            const customSnapshot = await get(customCategoriesRef);
+            const customData = customSnapshot.val() || {};
+
+            // Extract unique category names that don't exist in main categories
+            const mainCategoryNames = new Set([
+              ...expensesCateg.map((cat) => cat.name),
+              ...Object.values(customData).map((cat: any) => cat.name),
+            ]);
             const uniqueCategories = new Set(
-              expensesArray.map((exp) => exp.categoryName)
+              expensesArray
+                .map((exp) => exp.categoryName)
+                .filter((name) => name && !mainCategoryNames.has(name))
             );
             setExtraCategoryNames(Array.from(uniqueCategories));
           } else {
