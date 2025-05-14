@@ -72,7 +72,6 @@ const Settings = () => {
   const [editPickerAnchorEl, setEditPickerAnchorEl] =
     useState<HTMLElement | null>(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleAddCategory = async () => {
     const user = auth.currentUser;
@@ -416,16 +415,13 @@ const Settings = () => {
               label="Category Emoji"
               fullWidth
               value={newCategoryEmoji}
-              onChange={(e) => setNewCategoryEmoji(e.target.value)}
               onClick={(e) => {
-                if (!isMobile) {
-                  setAddPickerAnchorEl(e.currentTarget);
-                  setShowAddPicker(true);
-                }
+                setAddPickerAnchorEl(e.currentTarget);
+                setShowAddPicker(true);
               }}
               InputProps={{
-                readOnly: !isMobile,
-                endAdornment: !isMobile && (
+                readOnly: true,
+                endAdornment: (
                   <IconButton
                     onClick={(e) => {
                       setAddPickerAnchorEl(e.currentTarget);
@@ -554,21 +550,13 @@ const Settings = () => {
                   label="Category Emoji"
                   fullWidth
                   value={selectedCategory.emoji || ""}
-                  onChange={(e) =>
-                    setSelectedCategory({
-                      ...selectedCategory,
-                      emoji: e.target.value,
-                    })
-                  }
                   onClick={(e) => {
-                    if (!isMobile) {
-                      setEditPickerAnchorEl(e.currentTarget);
-                      setShowEditPicker(true);
-                    }
+                    setEditPickerAnchorEl(e.currentTarget);
+                    setShowEditPicker(true);
                   }}
                   InputProps={{
-                    readOnly: !isMobile,
-                    endAdornment: !isMobile && (
+                    readOnly: true,
+                    endAdornment: (
                       <IconButton
                         onClick={(e) => {
                           setEditPickerAnchorEl(e.currentTarget);
