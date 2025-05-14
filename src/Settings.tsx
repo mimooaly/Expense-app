@@ -24,7 +24,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import theme from "./theme";
 import { useState } from "react";
 import { Edit2, Trash2, X } from "react-feather";
 import { useCategories, UseCategoriesReturn } from "./hooks/useCategories";
