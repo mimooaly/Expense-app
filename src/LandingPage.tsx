@@ -480,6 +480,7 @@ const LandingPage: React.FC = () => {
                     borderRadius: 5,
                     background: "linear-gradient(120deg, #57A556, #FEC34E)",
                     display: "inline-block",
+                    maxWidth: 400,
                   }}
                 >
                   <Box
