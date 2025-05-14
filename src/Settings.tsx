@@ -452,6 +452,10 @@ const Settings = () => {
                 sx: {
                   overflow: "hidden",
                   borderRadius: 2,
+                  position: "fixed",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
                   "@media (max-width: 600px)": {
                     width: "auto",
                     maxWidth: "90vw",
@@ -583,6 +587,10 @@ const Settings = () => {
                     sx: {
                       overflow: "hidden",
                       borderRadius: 2,
+                      position: "fixed",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
                       "@media (max-width: 600px)": {
                         width: "auto",
                         maxWidth: "90vw",
