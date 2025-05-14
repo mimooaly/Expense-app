@@ -454,8 +454,8 @@ const Settings = () => {
                   overflow: "hidden",
                   borderRadius: 2,
                   position: "fixed",
-                  top: "50%",
-                  left: "50%",
+                  top: "50vh",
+                  left: "50vw",
                   transform: "translate(-50%, -50%)",
                   "@media (max-width: 600px)": {
                     width: "auto",
@@ -589,8 +589,8 @@ const Settings = () => {
                       overflow: "hidden",
                       borderRadius: 2,
                       position: "fixed",
-                      top: "50%",
-                      left: "50%",
+                      top: "50vh",
+                      left: "50vw",
                       transform: "translate(-50%, -50%)",
                       "@media (max-width: 600px)": {
                         width: "auto",
