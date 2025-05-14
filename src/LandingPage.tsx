@@ -27,6 +27,8 @@ import {
   User,
   FileText,
   RefreshCw,
+  LogIn,
+  PieChart,
 } from "react-feather";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -167,6 +169,34 @@ const LandingPage: React.FC = () => {
                   {link.label}
                 </NavLink>
               ))}
+              <Box
+                sx={{
+                  display: {
+                    md: "flex",
+                    borderLeft: "1px solid #e0e0e0",
+                    paddingLeft: 8,
+                  },
+                  gap: 1,
+                }}
+              >
+                {user ? (
+                  <NavLink href="/dashboard">
+                    <PieChart size={20} />
+                    Go to Dashboard
+                  </NavLink>
+                ) : (
+                  <>
+                    <NavLink href="/login">
+                      <LogIn size={20} />
+                      Login
+                    </NavLink>
+                    <NavLink href="/register">
+                      <User size={20} />
+                      Register
+                    </NavLink>
+                  </>
+                )}
+              </Box>
             </Box>
             {/* Mobile hamburger */}
             <Box sx={{ display: { xs: "block", md: "none" } }}>
@@ -180,23 +210,22 @@ const LandingPage: React.FC = () => {
               >
                 <Box
                   sx={{
-                    width: 220,
+                    width: 320,
                     p: 3,
                     pt: 6,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 3,
+                    gap: 1,
                   }}
                 >
                   {navLinks.map((link) => (
-                    <a
+                    <NavLink
                       key={link.id}
                       href={`#${link.id}`}
                       style={{
                         textDecoration: "none",
                         color: theme.palette.primary.dark,
                         fontWeight: 500,
-                        fontSize: 18,
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
@@ -213,8 +242,37 @@ const LandingPage: React.FC = () => {
                     >
                       {link.icon}
                       {link.label}
-                    </a>
+                    </NavLink>
                   ))}
+
+                  <Box
+                    sx={{
+                      display: {
+                        md: "flex",
+                        borderTop: "1px solid #e0e0e0",
+                        paddingTop: 8,
+                      },
+                      gap: 1,
+                    }}
+                  >
+                    {user ? (
+                      <NavLink href="/dashboard">
+                        <PieChart size={20} />
+                        Go to Dashboard
+                      </NavLink>
+                    ) : (
+                      <>
+                        <NavLink href="/login">
+                          <LogIn size={20} />
+                          Login
+                        </NavLink>
+                        <NavLink href="/register">
+                          <User size={20} />
+                          Register
+                        </NavLink>
+                      </>
+                    )}
+                  </Box>
                 </Box>
               </Drawer>
             </Box>
