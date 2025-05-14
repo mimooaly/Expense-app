@@ -263,7 +263,7 @@ const Settings = () => {
   return (
     <Container
       maxWidth="lg"
-      className="page-glossy-background, marginContainer"
+      className="page-glossy-background marginContainer settings-container"
     >
       <Box sx={{ my: 4 }}>
         <Typography variant="h4" sx={{ mb: 4 }}>

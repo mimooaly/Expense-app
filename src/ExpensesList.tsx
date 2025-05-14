@@ -1002,7 +1002,7 @@ const ExpensesList: React.FC = () => {
   return (
     <Container
       maxWidth="lg"
-      className="page-glossy-background, marginContainer"
+      className="page-glossy-background marginContainer expenses-list-container"
       sx={{ position: "relative", height: "100%" }}
     >
       <Box
