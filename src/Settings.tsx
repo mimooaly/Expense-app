@@ -413,7 +413,7 @@ const Settings = () => {
             />
             <TextField
               margin="dense"
-              label="Category Icon"
+              label="Category Emoji"
               fullWidth
               value={newCategoryEmoji}
               onChange={(e) => setNewCategoryEmoji(e.target.value)}
@@ -551,7 +551,7 @@ const Settings = () => {
                 />
                 <TextField
                   margin="dense"
-                  label="Category Icon"
+                  label="Category Emoji"
                   fullWidth
                   value={selectedCategory.emoji || ""}
                   onChange={(e) =>
