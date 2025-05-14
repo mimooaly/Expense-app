@@ -21,7 +21,6 @@ import {
   Paper,
   CircularProgress,
   Popover,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
