@@ -8,13 +8,10 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
-  Box,
 } from "@mui/material";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { useUserPreferences } from "./hooks/useUserPreferences";
-import { useCategories } from "./hooks/useCategories";
-import { useFormik } from "formik";
 
 interface ExpenseFormData {
   id?: string;
@@ -53,20 +50,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   initialValues,
 }) => {
   const { preferences } = useUserPreferences();
-  const categories = useCategories(preferences.hiddenCategories || []);
-
-  const formik = useFormik({
-    initialValues: {
-      name: initialValues?.name || "",
-      amount: initialValues?.amount || 0,
-      category: initialValues?.category || "",
-      date: initialValues?.date || new Date().toISOString().split("T")[0],
-      monthly: initialValues?.monthly || false,
-      currency: initialValues?.currency || preferences.defaultCurrency,
-    },
-    validationSchema,
-    onSubmit: onAdd,
-  });
 
   const today = new Date().toISOString().split("T")[0];
 

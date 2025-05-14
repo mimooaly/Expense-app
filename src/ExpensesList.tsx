@@ -655,11 +655,6 @@ const ExpensesList: React.FC = () => {
     setIsRecurringExpense(expense?.monthly || false);
   };
 
-  const handleBulkDeleteClick = () => {
-    setIsBulkDelete(true);
-    setShowDeleteDialog(true);
-  };
-
   const handleBulkActionClick = (event: React.MouseEvent<HTMLElement>) => {
     setBulkActionAnchorEl(event.currentTarget);
   };

@@ -17,10 +17,8 @@ import cashImage from "./assets/cash.png";
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  Smartphone,
   Lock,
   Globe,
-  BarChart2,
   List,
   DollarSign,
   Menu as MenuIcon,
