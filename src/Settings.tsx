@@ -21,6 +21,8 @@ import {
   Paper,
   CircularProgress,
   Popover,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import theme from "./theme";
 import { useState } from "react";
@@ -70,6 +72,8 @@ const Settings = () => {
     useState<HTMLElement | null>(null);
   const [editPickerAnchorEl, setEditPickerAnchorEl] =
     useState<HTMLElement | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleAddCategory = async () => {
     const user = auth.currentUser;
@@ -413,13 +417,16 @@ const Settings = () => {
               label="Category Icon"
               fullWidth
               value={newCategoryEmoji}
+              onChange={(e) => setNewCategoryEmoji(e.target.value)}
               onClick={(e) => {
-                setAddPickerAnchorEl(e.currentTarget);
-                setShowAddPicker(true);
+                if (!isMobile) {
+                  setAddPickerAnchorEl(e.currentTarget);
+                  setShowAddPicker(true);
+                }
               }}
               InputProps={{
-                readOnly: true,
-                endAdornment: (
+                readOnly: !isMobile,
+                endAdornment: !isMobile && (
                   <IconButton
                     onClick={(e) => {
                       setAddPickerAnchorEl(e.currentTarget);
@@ -548,13 +555,21 @@ const Settings = () => {
                   label="Category Icon"
                   fullWidth
                   value={selectedCategory.emoji || ""}
+                  onChange={(e) =>
+                    setSelectedCategory({
+                      ...selectedCategory,
+                      emoji: e.target.value,
+                    })
+                  }
                   onClick={(e) => {
-                    setEditPickerAnchorEl(e.currentTarget);
-                    setShowEditPicker(true);
+                    if (!isMobile) {
+                      setEditPickerAnchorEl(e.currentTarget);
+                      setShowEditPicker(true);
+                    }
                   }}
                   InputProps={{
-                    readOnly: true,
-                    endAdornment: (
+                    readOnly: !isMobile,
+                    endAdornment: !isMobile && (
                       <IconButton
                         onClick={(e) => {
                           setEditPickerAnchorEl(e.currentTarget);
