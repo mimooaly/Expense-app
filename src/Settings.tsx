@@ -584,22 +584,6 @@ const Settings = () => {
                     vertical: "top",
                     horizontal: "left",
                   }}
-                  slotProps={{
-                    paper: {
-                      sx: {
-                        overflow: "hidden",
-                        borderRadius: 2,
-                        position: "fixed",
-                        top: "50vh",
-                        left: "50vw",
-                        transform: "translate(-50%, -50%)",
-                        "@media (max-width: 600px)": {
-                          width: "auto",
-                          maxWidth: "90vw",
-                        },
-                      },
-                    },
-                  }}
                 >
                   <Box
                     sx={{
